@@ -52,3 +52,7 @@ Mkfile.old
 dkms.conf
 nginx/Makefile
 nginx/objs/src
+nginx/objs/Makefile
+nginx/objs/autoconf.err
+nginx/objs/nginx*
+
