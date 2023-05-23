@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.controller": "yaml",
+			"*.anim": "yaml",
+			"*.playable": "yaml",
+			"*.asset": "yaml",
+			"*.mat": "yaml",
+			"*.inc": "cpp",
+			"*.lua.txt": "lua",
+			"ngx_config.h": "c",
+			"ngx_auto_headers.h": "c",
+			"ngx_solaris_config.h": "c"
+		}
+	}
+}

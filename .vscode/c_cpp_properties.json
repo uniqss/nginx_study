@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/usr/include/c++/12/**",
+                "${workspaceFolder}/nginx/src/**",
+                "${workspaceFolder}/nginx/objs/src/**"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/nginx/objs/ngx_auto_config.h",
+                "${workspaceFolder}/nginx/objs/ngx_auto_headers.h",
+                "${workspaceFolder}/nginx/src/core/ngx_config.h",
+                "${workspaceFolder}/nginx/src/core/ngx_core.h"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "gcc-x64",
+            "compilerArgs": [],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

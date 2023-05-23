@@ -1,0 +1,87 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start nginx",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/nginx_build/usr/sbin/nginx",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "-gdb-set follow-fork-mode child",
+                    "ignoreFailures": true
+                }
+            ],
+            "cwd": "/nginx_build/usr/sbin",
+            "args": []
+        },
+        {
+            "name": "Attach nginx worker",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/nginx_build/usr/sbin/nginx",
+            "processId": "${input:get_nginx_worker_pid}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "-gdb-set follow-fork-mode child",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Attach nginx master",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/nginx_build/usr/sbin/nginx",
+            "processId": "${input:get_nginx_master_pid}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "-gdb-set follow-fork-mode child",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+    ],
+    "inputs": [
+        {
+            "id": "get_nginx_worker_pid",
+            "type": "command",
+            "command": "process-matcher.match",
+            "args": {
+                "program": "nginx",
+                "args": [
+                    "worker process"
+                ]
+            }
+        },
+        {
+            "id": "get_nginx_master_pid",
+            "type": "command",
+            "command": "process-matcher.match",
+            "args": {
+                "program": "nginx",
+                "args": [
+                    "master process"
+                ]
+            }
+        },
+    ]
+}

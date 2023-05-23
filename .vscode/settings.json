@@ -1,0 +1,22 @@
+{
+    "files.exclude": {
+        "nginx/objs/src": true,
+        "**/log": true,
+        "**/bin": true,
+        "**/*.o": true,
+        "**/*.class": true,
+        "**/*.pb.h": true,
+        "**/*.pb.cc": true
+    },
+    "files.watcherExclude": {
+        "nginx/objs/src": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/.hg/store/**": true,
+        "**/*.o": true,
+        "**/*.class": true,
+        "**/*.pb.h": true,
+        "**/*.pb.cc": true
+    },
+}
