@@ -47,7 +47,7 @@ cat << END > Makefile
 default:	build
 
 clean:
-	rm -rf Makefile $NGX_OBJS
+	rm -rf Makefile $NGX_OBJS/src $NGX_OBJS/*.o $NGX_OBJS/*.so $NGX_OBJS/autoconf.err $NGX_OBJS/Makefile $NGX_OBJS/nginx*
 
 .PHONY:	default clean
 END
