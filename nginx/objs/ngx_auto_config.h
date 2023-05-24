@@ -1,5 +1,10 @@
 #define NGX_CONFIGURE " --prefix=/nginx_build/var/www/html --sbin-path=/nginx_build/usr/sbin/nginx --conf-path=/nginx_build/etc/nginx/nginx.conf --http-log-path=/nginx_build/var/log/nginx/access.log --error-log-path=/nginx_build/var/log/nginx/error.log --with-pcre --lock-path=/nginx_build/var/lock/nginx.lock --pid-path=/nginx_build/var/run/nginx.pid --with-http_ssl_module --with-http_image_filter_module=dynamic --modules-path=/nginx_build/etc/nginx/modules --with-http_v2_module --with-stream=dynamic --with-http_addition_module --with-http_mp4_module"
 
+#ifndef NGX_DEBUG
+#define NGX_DEBUG  1
+#endif
+
+
 #ifndef NGX_COMPILER
 #define NGX_COMPILER  "gcc 11.3.0 (Ubuntu 11.3.0-1ubuntu1~22.04.1) "
 #endif
