@@ -1,0 +1,5 @@
+SESS timestamp=5115.310649746 pid=6759 sid=40c1ec220bb287cf exename="/nginx_build/usr/sbin/nginx"
+TASK timestamp=5115.310733295 tid=6759 pid=6759
+FORK timestamp=5115.314862112 pid=6761 ppid=6759
+FORK timestamp=5115.315849045 pid=6762 ppid=6761
+FORK timestamp=5115.316169823 pid=6763 ppid=6761
