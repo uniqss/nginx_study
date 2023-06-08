@@ -1,12 +1,25 @@
-
-/*
- * Copyright (C) Roman Arutyunyan
- * Copyright (C) Nginx, Inc.
- */
-
-
+#include <ngx_conf_file.h>
+#include <ngx_module.h>
+#include <ngx_cycle.h>
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_string.h>
+#include <ngx_hash.h>
+#include <ngx_regex.h>
+#include <ngx_resolver.h>
+#include <ngx_slab.h>
+#include <ngx_open_file_cache.h>
+#include <ngx_event_openssl.h>
+#include <ngx_http.h>
+#include <ngx_parse.h>
+#include <ngx_parse_time.h>
+#include <ngx_proxy_protocol.h>
+#include <ngx_process_cycle.h>
+#include <ngx_syslog.h>
+#include <ngx_files.h>
+#include <nginx.h>
+#include <ngx_crc32.h>
+#include <ngx_rwlock.h>
 #include <ngx_stream.h>
 
 
@@ -771,7 +784,7 @@ ngx_stream_proxy_connect(ngx_stream_session_t *s)
     pc->read->handler = ngx_stream_proxy_connect_handler;
     pc->write->handler = ngx_stream_proxy_connect_handler;
 
-    ngx_add_timer(pc->write, pscf->connect_timeout);
+    ngx_event_add_timer(pc->write, pscf->connect_timeout);
 }
 
 
@@ -977,7 +990,7 @@ ngx_stream_proxy_send_proxy_protocol(ngx_stream_session_t *s)
 
         pscf = ngx_stream_get_module_srv_conf(s, ngx_stream_proxy_module);
 
-        ngx_add_timer(pc->write, pscf->timeout);
+        ngx_event_add_timer(pc->write, pscf->timeout);
 
         pc->write->handler = ngx_stream_proxy_connect_handler;
 
@@ -1100,7 +1113,7 @@ ngx_stream_proxy_ssl_init_connection(ngx_stream_session_t *s)
     if (rc == NGX_AGAIN) {
 
         if (!pc->write->timer_set) {
-            ngx_add_timer(pc->write, pscf->connect_timeout);
+            ngx_event_add_timer(pc->write, pscf->connect_timeout);
         }
 
         pc->ssl->handler = ngx_stream_proxy_ssl_handshake;
@@ -1146,7 +1159,7 @@ ngx_stream_proxy_ssl_handshake(ngx_connection_t *pc)
         }
 
         if (pc->write->timer_set) {
-            ngx_del_timer(pc->write);
+            ngx_event_del_timer(pc->write);
         }
 
         ngx_stream_proxy_init_upstream(s);
@@ -1439,7 +1452,7 @@ ngx_stream_proxy_process_connection(ngx_event_t *ev, ngx_uint_t from_upstream)
                 }
 
                 if (u->connected && !c->read->delayed && !pc->read->delayed) {
-                    ngx_add_timer(c->write, pscf->timeout);
+                    ngx_event_add_timer(c->write, pscf->timeout);
                 }
 
                 return;
@@ -1526,7 +1539,7 @@ ngx_stream_proxy_connect_handler(ngx_event_t *ev)
         return;
     }
 
-    ngx_del_timer(c->write);
+    ngx_event_del_timer(c->write);
 
     ngx_log_debug0(NGX_LOG_DEBUG_STREAM, c->log, 0,
                    "stream proxy connect upstream");
@@ -1684,7 +1697,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
                 if (limit <= 0) {
                     src->read->delayed = 1;
                     delay = (ngx_msec_t) (- limit * 1000 / limit_rate + 1);
-                    ngx_add_timer(src->read, delay);
+                    ngx_event_add_timer(src->read, delay);
                     break;
                 }
 
@@ -1712,7 +1725,7 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
 
                     if (delay > 0) {
                         src->read->delayed = 1;
-                        ngx_add_timer(src->read, delay);
+                        ngx_event_add_timer(src->read, delay);
                     }
                 }
 
@@ -1792,10 +1805,10 @@ ngx_stream_proxy_process(ngx_stream_session_t *s, ngx_uint_t from_upstream,
         }
 
         if (!c->read->delayed && !pc->read->delayed) {
-            ngx_add_timer(c->write, pscf->timeout);
+            ngx_event_add_timer(c->write, pscf->timeout);
 
         } else if (c->write->timer_set) {
-            ngx_del_timer(c->write);
+            ngx_event_del_timer(c->write);
         }
     }
 }

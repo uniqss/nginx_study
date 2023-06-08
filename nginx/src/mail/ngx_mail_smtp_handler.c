@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
 #include <ngx_mail.h>
 #include <ngx_mail_smtp_module.h>
@@ -291,7 +291,7 @@ ngx_mail_smtp_greeting(ngx_mail_session_t *s, ngx_connection_t *c)
     sscf = ngx_mail_get_module_srv_conf(s, ngx_mail_smtp_module);
 
     timeout = sscf->greeting_delay ? sscf->greeting_delay : cscf->timeout;
-    ngx_add_timer(c->read, timeout);
+    ngx_event_add_timer(c->read, timeout);
 
     if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
         ngx_mail_close_connection(c);
@@ -337,7 +337,7 @@ ngx_mail_smtp_invalid_pipelining(ngx_event_t *rev)
 
         c->read->handler = ngx_mail_smtp_init_protocol;
 
-        ngx_add_timer(c->read, cscf->timeout);
+        ngx_event_add_timer(c->read, cscf->timeout);
 
         if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
             ngx_mail_close_connection(c);

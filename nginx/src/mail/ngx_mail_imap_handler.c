@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
 #include <ngx_mail.h>
 #include <ngx_mail_imap_module.h>
@@ -44,7 +44,7 @@ ngx_mail_imap_init_session(ngx_mail_session_t *s, ngx_connection_t *c)
 
     c->read->handler = ngx_mail_imap_init_protocol;
 
-    ngx_add_timer(c->read, cscf->timeout);
+    ngx_event_add_timer(c->read, cscf->timeout);
 
     if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
         ngx_mail_close_connection(c);

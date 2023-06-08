@@ -10,7 +10,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_http.h>
 #include <nginx.h>
 
@@ -18,39 +18,39 @@
 #include <perl.h>
 
 
-typedef ngx_http_request_t   *nginx;
+typedef ngx_http_request_t *nginx;
 
 typedef struct {
-    ngx_http_request_t       *request;
+    ngx_http_request_t *request;
 
-    ngx_str_t                 filename;
-    ngx_str_t                 redirect_uri;
+    ngx_str_t filename;
+    ngx_str_t redirect_uri;
 
-    SV                       *next;
+    SV *next;
 
-    ngx_int_t                 status;
+    ngx_int_t status;
 
-    unsigned                  done:1;
-    unsigned                  error:1;
-    unsigned                  variable:1;
-    unsigned                  header_sent:1;
+    unsigned done : 1;
+    unsigned error : 1;
+    unsigned variable : 1;
+    unsigned header_sent : 1;
 
-    ngx_array_t              *variables;  /* array of ngx_http_perl_var_t */
+    ngx_array_t *variables; /* array of ngx_http_perl_var_t */
 
 #if (NGX_HTTP_SSI)
-    ngx_http_ssi_ctx_t       *ssi;
+    ngx_http_ssi_ctx_t *ssi;
 #endif
 } ngx_http_perl_ctx_t;
 
 
 typedef struct {
-    ngx_uint_t    hash;
-    ngx_str_t     name;
-    ngx_str_t     value;
+    ngx_uint_t hash;
+    ngx_str_t name;
+    ngx_str_t value;
 } ngx_http_perl_var_t;
 
 
-extern ngx_module_t  ngx_http_perl_module;
+extern ngx_module_t ngx_http_perl_module;
 
 
 /*
@@ -58,12 +58,12 @@ extern ngx_module_t  ngx_http_perl_module;
  * when building with perl 5.6.1
  */
 #ifndef PERL_IMPLICIT_CONTEXT
-#undef  dTHXa
+#undef dTHXa
 #define dTHXa(a)
 #endif
 
 
-extern void boot_DynaLoader(pTHX_ CV* cv);
+extern void boot_DynaLoader(pTHX_ CV *cv);
 
 
 void ngx_http_perl_handle_request(ngx_http_request_t *r);

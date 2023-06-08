@@ -10,35 +10,37 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_process.h>
+#include <ngx_atomic.h>
+#include <ngx_files.h>
 
 
 typedef struct {
-    ngx_atomic_t   lock;
+    ngx_atomic_t lock;
 #if (NGX_HAVE_POSIX_SEM)
-    ngx_atomic_t   wait;
+    ngx_atomic_t wait;
 #endif
 } ngx_shmtx_sh_t;
 
 
 typedef struct {
 #if (NGX_HAVE_ATOMIC_OPS)
-    ngx_atomic_t  *lock;
+    ngx_atomic_t *lock;
 #if (NGX_HAVE_POSIX_SEM)
-    ngx_atomic_t  *wait;
-    ngx_uint_t     semaphore;
-    sem_t          sem;
+    ngx_atomic_t *wait;
+    ngx_uint_t semaphore;
+    sem_t sem;
 #endif
 #else
-    ngx_fd_t       fd;
-    u_char        *name;
+    ngx_fd_t fd;
+    u_char *name;
 #endif
-    ngx_uint_t     spin;
+    ngx_uint_t spin;
 } ngx_shmtx_t;
 
 
-ngx_int_t ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr,
-    u_char *name);
+ngx_int_t ngx_shmtx_create(ngx_shmtx_t *mtx, ngx_shmtx_sh_t *addr, u_char *name);
 void ngx_shmtx_destroy(ngx_shmtx_t *mtx);
 ngx_uint_t ngx_shmtx_trylock(ngx_shmtx_t *mtx);
 void ngx_shmtx_lock(ngx_shmtx_t *mtx);

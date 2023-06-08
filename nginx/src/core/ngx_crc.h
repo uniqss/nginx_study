@@ -1,27 +1,14 @@
-
-/*
- * Copyright (C) Igor Sysoev
- * Copyright (C) Nginx, Inc.
- */
-
-
-#ifndef _NGX_CRC_H_INCLUDED_
-#define _NGX_CRC_H_INCLUDED_
-
+#pragma once
 
 #include <ngx_config.h>
-#include <ngx_core.h>
-
+#include <ngx_core_def.h>
 
 /* 32-bit crc16 */
 
-static ngx_inline uint32_t
-ngx_crc(u_char *data, size_t len)
-{
-    uint32_t  sum;
+static ngx_inline uint32_t ngx_crc(u_char *data, size_t len) {
+    uint32_t sum;
 
     for (sum = 0; len; len--) {
-
         /*
          * gcc 2.95.2 x86 and icc 7.1.006 compile
          * that operator into the single "rol" opcode,
@@ -34,6 +21,3 @@ ngx_crc(u_char *data, size_t len)
 
     return sum;
 }
-
-
-#endif /* _NGX_CRC_H_INCLUDED_ */

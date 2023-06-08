@@ -10,13 +10,13 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 
 typedef struct {
-    uint64_t  bytes;
-    uint32_t  a, b, c, d, e, f;
-    u_char    buffer[64];
+    uint64_t bytes;
+    uint32_t a, b, c, d, e, f;
+    u_char buffer[64];
 } ngx_sha1_t;
 
 

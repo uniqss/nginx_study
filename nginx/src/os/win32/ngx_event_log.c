@@ -5,7 +5,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 
 #define NGX_MAX_ERROR_STR   2048

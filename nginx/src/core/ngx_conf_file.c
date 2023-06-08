@@ -4,11 +4,13 @@
  * Copyright (C) Nginx, Inc.
  */
 
+#include <ngx_conf_file.h>
+#include <ngx_module.h>
+#include <ngx_cycle.h>
+#include <ngx_crc32.h>
+#include <ngx_parse.h>
 
-#include <ngx_config.h>
-#include <ngx_core.h>
-
-#define NGX_CONF_BUFFER  4096
+#define NGX_CONF_BUFFER 4096
 
 static ngx_int_t ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename);
 static ngx_int_t ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last);
@@ -16,56 +18,38 @@ static ngx_int_t ngx_conf_read_token(ngx_conf_t *cf);
 static void ngx_conf_flush_files(ngx_cycle_t *cycle);
 
 
-static ngx_command_t  ngx_conf_commands[] = {
+static ngx_command_t ngx_conf_commands[] = {
 
-    { ngx_string("include"),
-      NGX_ANY_CONF|NGX_CONF_TAKE1,
-      ngx_conf_include,
-      0,
-      0,
-      NULL },
+    {ngx_string("include"), NGX_ANY_CONF | NGX_CONF_TAKE1, ngx_conf_include, 0, 0, NULL},
 
-      ngx_null_command
-};
+    ngx_null_command};
 
 
-ngx_module_t  ngx_conf_module = {
-    NGX_MODULE_V1,
-    NULL,                                  /* module context */
-    ngx_conf_commands,                     /* module directives */
-    NGX_CONF_MODULE,                       /* module type */
-    NULL,                                  /* init master */
-    NULL,                                  /* init module */
-    NULL,                                  /* init process */
-    NULL,                                  /* init thread */
-    NULL,                                  /* exit thread */
-    ngx_conf_flush_files,                  /* exit process */
-    NULL,                                  /* exit master */
-    NGX_MODULE_V1_PADDING
-};
+ngx_module_t ngx_conf_module = {NGX_MODULE_V1,
+                                NULL,                 /* module context */
+                                ngx_conf_commands,    /* module directives */
+                                NGX_CONF_MODULE,      /* module type */
+                                NULL,                 /* init master */
+                                NULL,                 /* init module */
+                                NULL,                 /* init process */
+                                NULL,                 /* init thread */
+                                NULL,                 /* exit thread */
+                                ngx_conf_flush_files, /* exit process */
+                                NULL,                 /* exit master */
+                                NGX_MODULE_V1_PADDING};
 
 
 /* The eight fixed arguments */
 
-static ngx_uint_t argument_number[] = {
-    NGX_CONF_NOARGS,
-    NGX_CONF_TAKE1,
-    NGX_CONF_TAKE2,
-    NGX_CONF_TAKE3,
-    NGX_CONF_TAKE4,
-    NGX_CONF_TAKE5,
-    NGX_CONF_TAKE6,
-    NGX_CONF_TAKE7
-};
+static ngx_uint_t argument_number[] = {NGX_CONF_NOARGS, NGX_CONF_TAKE1, NGX_CONF_TAKE2, NGX_CONF_TAKE3,
+                                       NGX_CONF_TAKE4,  NGX_CONF_TAKE5, NGX_CONF_TAKE6, NGX_CONF_TAKE7};
 
 
-char *
-ngx_conf_param(ngx_conf_t *cf)
-{
-    char             *rv;
-    ngx_str_t        *param;
-    ngx_buf_t         b;
-    ngx_conf_file_t   conf_file;
+char *ngx_conf_param(ngx_conf_t *cf) {
+    char *rv;
+    ngx_str_t *param;
+    ngx_buf_t b;
+    ngx_conf_file_t conf_file;
 
     param = &cf->cycle->conf_param;
 
@@ -98,15 +82,13 @@ ngx_conf_param(ngx_conf_t *cf)
 }
 
 
-static ngx_int_t
-ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
-{
-    off_t             size;
-    u_char           *p;
-    uint32_t          hash;
-    ngx_buf_t        *buf;
-    ngx_str_node_t   *sn;
-    ngx_conf_dump_t  *cd;
+static ngx_int_t ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename) {
+    off_t size;
+    u_char *p;
+    uint32_t hash;
+    ngx_buf_t *buf;
+    ngx_str_node_t *sn;
+    ngx_conf_dump_t *cd;
 
     hash = ngx_crc32_long(filename->data, filename->len);
 
@@ -129,7 +111,7 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
 
     size = ngx_file_size(&cf->conf_file->file.info);
 
-    buf = ngx_create_temp_buf(cf->cycle->pool, (size_t) size);
+    buf = ngx_create_temp_buf(cf->cycle->pool, (size_t)size);
     if (buf == NULL) {
         return NGX_ERROR;
     }
@@ -154,19 +136,13 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
 }
 
 
-char *
-ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
-{
-    char             *rv;
-    ngx_fd_t          fd;
-    ngx_int_t         rc;
-    ngx_buf_t         buf;
-    ngx_conf_file_t  *prev, conf_file;
-    enum {
-        parse_file = 0,
-        parse_block,
-        parse_param
-    } type;
+char *ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename) {
+    char *rv;
+    ngx_fd_t fd;
+    ngx_int_t rc;
+    ngx_buf_t buf;
+    ngx_conf_file_t *prev, conf_file;
+    enum { parse_file = 0, parse_block, parse_param } type;
 
 #if (NGX_SUPPRESS_WARN)
     fd = NGX_INVALID_FILE;
@@ -174,15 +150,12 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 #endif
 
     if (filename) {
-
         /* open configuration file */
 
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
 
         if (fd == NGX_INVALID_FILE) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                               ngx_open_file_n " \"%s\" failed",
-                               filename->data);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno, ngx_open_file_n " \"%s\" failed", filename->data);
             return NGX_CONF_ERROR;
         }
 
@@ -191,8 +164,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         cf->conf_file = &conf_file;
 
         if (ngx_fd_info(fd, &cf->conf_file->file.info) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno,
-                          ngx_fd_info_n " \"%s\" failed", filename->data);
+            ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno, ngx_fd_info_n " \"%s\" failed", filename->data);
         }
 
         cf->conf_file->buffer = &buf;
@@ -220,8 +192,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 #if (NGX_DEBUG)
             || 1
 #endif
-           )
-        {
+        ) {
             if (ngx_conf_add_dump(cf, filename) != NGX_OK) {
                 goto failed;
             }
@@ -231,7 +202,6 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
     } else if (cf->conf_file->file.fd != NGX_INVALID_FILE) {
-
         type = parse_block;
 
     } else {
@@ -239,7 +209,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     }
 
 
-    for ( ;; ) {
+    for (;;) {
         rc = ngx_conf_read_token(cf);
 
         /*
@@ -257,7 +227,6 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_BLOCK_DONE) {
-
             if (type != parse_block) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"}\"");
                 goto failed;
@@ -267,10 +236,8 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_FILE_DONE) {
-
             if (type == parse_block) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "unexpected end of file, expecting \"}\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected end of file, expecting \"}\"");
                 goto failed;
             }
 
@@ -278,7 +245,6 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_BLOCK_START) {
-
             if (type == parse_param) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "block directives are not supported "
@@ -290,7 +256,6 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         /* rc == NGX_OK || rc == NGX_CONF_BLOCK_START */
 
         if (cf->handler) {
-
             /*
              * the custom handler, i.e., that is used in the http's
              * "types { ... }" directive
@@ -335,9 +300,7 @@ done:
         }
 
         if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-            ngx_log_error(NGX_LOG_ALERT, cf->log, ngx_errno,
-                          ngx_close_file_n " %s failed",
-                          filename->data);
+            ngx_log_error(NGX_LOG_ALERT, cf->log, ngx_errno, ngx_close_file_n " %s failed", filename->data);
             rc = NGX_ERROR;
         }
 
@@ -352,28 +315,24 @@ done:
 }
 
 
-static ngx_int_t
-ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
-{
-    char           *rv;
-    void           *conf, **confp;
-    ngx_uint_t      i, found;
-    ngx_str_t      *name;
-    ngx_command_t  *cmd;
+static ngx_int_t ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last) {
+    char *rv;
+    void *conf, **confp;
+    ngx_uint_t i, found;
+    ngx_str_t *name;
+    ngx_command_t *cmd;
 
     name = cf->args->elts;
 
     found = 0;
 
     for (i = 0; cf->cycle->modules[i]; i++) {
-
         cmd = cf->cycle->modules[i]->commands;
         if (cmd == NULL) {
             continue;
         }
 
-        for ( /* void */ ; cmd->name.len; cmd++) {
-
+        for (/* void */; cmd->name.len; cmd++) {
             if (name->len != cmd->name.len) {
                 continue;
             }
@@ -384,9 +343,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             found = 1;
 
-            if (cf->cycle->modules[i]->type != NGX_CONF_MODULE
-                && cf->cycle->modules[i]->type != cf->module_type)
-            {
+            if (cf->cycle->modules[i]->type != NGX_CONF_MODULE && cf->cycle->modules[i]->type != cf->module_type) {
                 continue;
             }
 
@@ -397,47 +354,37 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             }
 
             if (!(cmd->type & NGX_CONF_BLOCK) && last != NGX_OK) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                  "directive \"%s\" is not terminated by \";\"",
-                                  name->data);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "directive \"%s\" is not terminated by \";\"", name->data);
                 return NGX_ERROR;
             }
 
             if ((cmd->type & NGX_CONF_BLOCK) && last != NGX_CONF_BLOCK_START) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "directive \"%s\" has no opening \"{\"",
-                                   name->data);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "directive \"%s\" has no opening \"{\"", name->data);
                 return NGX_ERROR;
             }
 
             /* is the directive's argument count right ? */
 
             if (!(cmd->type & NGX_CONF_ANY)) {
-
                 if (cmd->type & NGX_CONF_FLAG) {
-
                     if (cf->args->nelts != 2) {
                         goto invalid;
                     }
 
                 } else if (cmd->type & NGX_CONF_1MORE) {
-
                     if (cf->args->nelts < 2) {
                         goto invalid;
                     }
 
                 } else if (cmd->type & NGX_CONF_2MORE) {
-
                     if (cf->args->nelts < 3) {
                         goto invalid;
                     }
 
                 } else if (cf->args->nelts > NGX_CONF_MAX_ARGS) {
-
                     goto invalid;
 
-                } else if (!(cmd->type & argument_number[cf->args->nelts - 1]))
-                {
+                } else if (!(cmd->type & argument_number[cf->args->nelts - 1])) {
                     goto invalid;
                 }
             }
@@ -447,13 +394,13 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             conf = NULL;
 
             if (cmd->type & NGX_DIRECT_CONF) {
-                conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
+                conf = ((void **)cf->ctx)[cf->cycle->modules[i]->index];
 
             } else if (cmd->type & NGX_MAIN_CONF) {
-                conf = &(((void **) cf->ctx)[cf->cycle->modules[i]->index]);
+                conf = &(((void **)cf->ctx)[cf->cycle->modules[i]->index]);
 
             } else if (cf->ctx) {
-                confp = *(void **) ((char *) cf->ctx + cmd->conf);
+                confp = *(void **)((char *)cf->ctx + cmd->conf);
 
                 if (confp) {
                     conf = confp[cf->cycle->modules[i]->ctx_index];
@@ -470,46 +417,39 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 return NGX_ERROR;
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"%s\" directive %s", name->data, rv);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%s\" directive %s", name->data, rv);
 
             return NGX_ERROR;
         }
     }
 
     if (found) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "\"%s\" directive is not allowed here", name->data);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"%s\" directive is not allowed here", name->data);
 
         return NGX_ERROR;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "unknown directive \"%s\"", name->data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown directive \"%s\"", name->data);
 
     return NGX_ERROR;
 
 invalid:
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid number of arguments in \"%s\" directive",
-                       name->data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid number of arguments in \"%s\" directive", name->data);
 
     return NGX_ERROR;
 }
 
 
-static ngx_int_t
-ngx_conf_read_token(ngx_conf_t *cf)
-{
-    u_char      *start, ch, *src, *dst;
-    off_t        file_size;
-    size_t       len;
-    ssize_t      n, size;
-    ngx_uint_t   found, need_space, last_space, sharp_comment, variable;
-    ngx_uint_t   quoted, s_quoted, d_quoted, start_line;
-    ngx_str_t   *word;
-    ngx_buf_t   *b, *dump;
+static ngx_int_t ngx_conf_read_token(ngx_conf_t *cf) {
+    u_char *start, ch, *src, *dst;
+    off_t file_size;
+    size_t len;
+    ssize_t n, size;
+    ngx_uint_t found, need_space, last_space, sharp_comment, variable;
+    ngx_uint_t quoted, s_quoted, d_quoted, start_line;
+    ngx_str_t *word;
+    ngx_buf_t *b, *dump;
 
     found = 0;
     need_space = 0;
@@ -528,14 +468,10 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
     file_size = ngx_file_size(&cf->conf_file->file.info);
 
-    for ( ;; ) {
-
+    for (;;) {
         if (b->pos >= b->last) {
-
             if (cf->conf_file->file.offset >= file_size) {
-
                 if (cf->args->nelts > 0 || !last_space) {
-
                     if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
                         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                            "unexpected end of parameter, "
@@ -564,15 +500,14 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     ch = '\'';
 
                 } else {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "too long parameter \"%*s...\" started",
-                                       10, start);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "too long parameter \"%*s...\" started", 10, start);
                     return NGX_ERROR;
                 }
 
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "too long parameter, probably "
-                                   "missing terminating \"%c\" character", ch);
+                                   "missing terminating \"%c\" character",
+                                   ch);
                 return NGX_ERROR;
             }
 
@@ -580,14 +515,13 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 ngx_memmove(b->start, start, len);
             }
 
-            size = (ssize_t) (file_size - cf->conf_file->file.offset);
+            size = (ssize_t)(file_size - cf->conf_file->file.offset);
 
             if (size > b->end - (b->start + len)) {
                 size = b->end - (b->start + len);
             }
 
-            n = ngx_read_file(&cf->conf_file->file, b->start + len, size,
-                              cf->conf_file->file.offset);
+            n = ngx_read_file(&cf->conf_file->file, b->start + len, size, cf->conf_file->file.offset);
 
             if (n == NGX_ERROR) {
                 return NGX_ERROR;
@@ -595,7 +529,8 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
             if (n != size) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   ngx_read_file_n " returned "
+                                   ngx_read_file_n
+                                   " returned "
                                    "only %z bytes instead of %z",
                                    n, size);
                 return NGX_ERROR;
@@ -649,14 +584,12 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 need_space = 0;
 
             } else {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "unexpected \"%c\"", ch);
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"%c\"", ch);
                 return NGX_ERROR;
             }
         }
 
         if (last_space) {
-
             start = b->pos - 1;
             start_line = cf->conf_file->line;
 
@@ -665,58 +598,55 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
             switch (ch) {
+                case ';':
+                case '{':
+                    if (cf->args->nelts == 0) {
+                        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"%c\"", ch);
+                        return NGX_ERROR;
+                    }
 
-            case ';':
-            case '{':
-                if (cf->args->nelts == 0) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "unexpected \"%c\"", ch);
-                    return NGX_ERROR;
-                }
+                    if (ch == '{') {
+                        return NGX_CONF_BLOCK_START;
+                    }
 
-                if (ch == '{') {
-                    return NGX_CONF_BLOCK_START;
-                }
+                    return NGX_OK;
 
-                return NGX_OK;
+                case '}':
+                    if (cf->args->nelts != 0) {
+                        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"}\"");
+                        return NGX_ERROR;
+                    }
 
-            case '}':
-                if (cf->args->nelts != 0) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "unexpected \"}\"");
-                    return NGX_ERROR;
-                }
+                    return NGX_CONF_BLOCK_DONE;
 
-                return NGX_CONF_BLOCK_DONE;
+                case '#':
+                    sharp_comment = 1;
+                    continue;
 
-            case '#':
-                sharp_comment = 1;
-                continue;
+                case '\\':
+                    quoted = 1;
+                    last_space = 0;
+                    continue;
 
-            case '\\':
-                quoted = 1;
-                last_space = 0;
-                continue;
+                case '"':
+                    start++;
+                    d_quoted = 1;
+                    last_space = 0;
+                    continue;
 
-            case '"':
-                start++;
-                d_quoted = 1;
-                last_space = 0;
-                continue;
+                case '\'':
+                    start++;
+                    s_quoted = 1;
+                    last_space = 0;
+                    continue;
 
-            case '\'':
-                start++;
-                s_quoted = 1;
-                last_space = 0;
-                continue;
+                case '$':
+                    variable = 1;
+                    last_space = 0;
+                    continue;
 
-            case '$':
-                variable = 1;
-                last_space = 0;
-                continue;
-
-            default:
-                last_space = 0;
+                default:
+                    last_space = 0;
             }
 
         } else {
@@ -750,9 +680,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     found = 1;
                 }
 
-            } else if (ch == ' ' || ch == '\t' || ch == CR || ch == LF
-                       || ch == ';' || ch == '{')
-            {
+            } else if (ch == ' ' || ch == '\t' || ch == CR || ch == LF || ch == ';' || ch == '{') {
                 last_space = 1;
                 found = 1;
             }
@@ -768,34 +696,30 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     return NGX_ERROR;
                 }
 
-                for (dst = word->data, src = start, len = 0;
-                     src < b->pos - 1;
-                     len++)
-                {
+                for (dst = word->data, src = start, len = 0; src < b->pos - 1; len++) {
                     if (*src == '\\') {
                         switch (src[1]) {
-                        case '"':
-                        case '\'':
-                        case '\\':
-                            src++;
-                            break;
+                            case '"':
+                            case '\'':
+                            case '\\':
+                                src++;
+                                break;
 
-                        case 't':
-                            *dst++ = '\t';
-                            src += 2;
-                            continue;
+                            case 't':
+                                *dst++ = '\t';
+                                src += 2;
+                                continue;
 
-                        case 'r':
-                            *dst++ = '\r';
-                            src += 2;
-                            continue;
+                            case 'r':
+                                *dst++ = '\r';
+                                src += 2;
+                                continue;
 
-                        case 'n':
-                            *dst++ = '\n';
-                            src += 2;
-                            continue;
+                            case 'n':
+                                *dst++ = '\n';
+                                src += 2;
+                                continue;
                         }
-
                     }
                     *dst++ = *src++;
                 }
@@ -817,13 +741,11 @@ ngx_conf_read_token(ngx_conf_t *cf)
 }
 
 
-char *
-ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char        *rv;
-    ngx_int_t    n;
-    ngx_str_t   *value, file, name;
-    ngx_glob_t   gl;
+char *ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *rv;
+    ngx_int_t n;
+    ngx_str_t *value, file, name;
+    ngx_glob_t gl;
 
     value = cf->args->elts;
     file = value[1];
@@ -834,8 +756,7 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (strpbrk((char *) file.data, "*?[") == NULL) {
-
+    if (strpbrk((char *)file.data, "*?[") == NULL) {
         ngx_log_debug1(NGX_LOG_DEBUG_CORE, cf->log, 0, "include %s", file.data);
 
         return ngx_conf_parse(cf, &file);
@@ -848,14 +769,13 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     gl.test = 1;
 
     if (ngx_open_glob(&gl) != NGX_OK) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                           ngx_open_glob_n " \"%s\" failed", file.data);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno, ngx_open_glob_n " \"%s\" failed", file.data);
         return NGX_CONF_ERROR;
     }
 
     rv = NGX_CONF_OK;
 
-    for ( ;; ) {
+    for (;;) {
         n = ngx_read_glob(&gl, &name);
 
         if (n != NGX_OK) {
@@ -883,10 +803,8 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-ngx_int_t
-ngx_conf_full_name(ngx_cycle_t *cycle, ngx_str_t *name, ngx_uint_t conf_prefix)
-{
-    ngx_str_t  *prefix;
+ngx_int_t ngx_conf_full_name(ngx_cycle_t *cycle, ngx_str_t *name, ngx_uint_t conf_prefix) {
+    ngx_str_t *prefix;
 
     prefix = conf_prefix ? &cycle->conf_prefix : &cycle->prefix;
 
@@ -894,13 +812,11 @@ ngx_conf_full_name(ngx_cycle_t *cycle, ngx_str_t *name, ngx_uint_t conf_prefix)
 }
 
 
-ngx_open_file_t *
-ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
-{
-    ngx_str_t         full;
-    ngx_uint_t        i;
-    ngx_list_part_t  *part;
-    ngx_open_file_t  *file;
+ngx_open_file_t *ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name) {
+    ngx_str_t full;
+    ngx_uint_t i;
+    ngx_list_part_t *part;
+    ngx_open_file_t *file;
 
 #if (NGX_SUPPRESS_WARN)
     ngx_str_null(&full);
@@ -916,8 +832,7 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
         part = &cycle->open_files.part;
         file = part->elts;
 
-        for (i = 0; /* void */ ; i++) {
-
+        for (i = 0; /* void */; i++) {
             if (i >= part->nelts) {
                 if (part->next == NULL) {
                     break;
@@ -958,20 +873,17 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
 }
 
 
-static void
-ngx_conf_flush_files(ngx_cycle_t *cycle)
-{
-    ngx_uint_t        i;
-    ngx_list_part_t  *part;
-    ngx_open_file_t  *file;
+static void ngx_conf_flush_files(ngx_cycle_t *cycle) {
+    ngx_uint_t i;
+    ngx_list_part_t *part;
+    ngx_open_file_t *file;
 
     ngx_log_debug0(NGX_LOG_DEBUG_CORE, cycle->log, 0, "flush files");
 
     part = &cycle->open_files.part;
     file = part->elts;
 
-    for (i = 0; /* void */ ; i++) {
-
+    for (i = 0; /* void */; i++) {
         if (i >= part->nelts) {
             if (part->next == NULL) {
                 break;
@@ -988,12 +900,9 @@ ngx_conf_flush_files(ngx_cycle_t *cycle)
 }
 
 
-void ngx_cdecl
-ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
-    const char *fmt, ...)
-{
-    u_char   errstr[NGX_MAX_CONF_ERRSTR], *p, *last;
-    va_list  args;
+void ngx_cdecl ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err, const char *fmt, ...) {
+    u_char errstr[NGX_MAX_CONF_ERRSTR], *p, *last;
+    va_list args;
 
     last = errstr + NGX_MAX_CONF_ERRSTR;
 
@@ -1011,27 +920,23 @@ ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
     }
 
     if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
-        ngx_log_error(level, cf->log, 0, "%*s in command line",
-                      p - errstr, errstr);
+        ngx_log_error(level, cf->log, 0, "%*s in command line", p - errstr, errstr);
         return;
     }
 
-    ngx_log_error(level, cf->log, 0, "%*s in %s:%ui",
-                  p - errstr, errstr,
-                  cf->conf_file->file.name.data, cf->conf_file->line);
+    ngx_log_error(level, cf->log, 0, "%*s in %s:%ui", p - errstr, errstr, cf->conf_file->file.name.data,
+                  cf->conf_file->line);
 }
 
 
-char *
-ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_str_t        *value;
-    ngx_flag_t       *fp;
-    ngx_conf_post_t  *post;
+    ngx_str_t *value;
+    ngx_flag_t *fp;
+    ngx_conf_post_t *post;
 
-    fp = (ngx_flag_t *) (p + cmd->offset);
+    fp = (ngx_flag_t *)(p + cmd->offset);
 
     if (*fp != NGX_CONF_UNSET) {
         return "is duplicate";
@@ -1039,17 +944,17 @@ ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    if (ngx_strcasecmp(value[1].data, (u_char *) "on") == 0) {
+    if (ngx_strcasecmp(value[1].data, (u_char *)"on") == 0) {
         *fp = 1;
 
-    } else if (ngx_strcasecmp(value[1].data, (u_char *) "off") == 0) {
+    } else if (ngx_strcasecmp(value[1].data, (u_char *)"off") == 0) {
         *fp = 0;
 
     } else {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                     "invalid value \"%s\" in \"%s\" directive, "
-                     "it must be \"on\" or \"off\"",
-                     value[1].data, cmd->name.data);
+                           "invalid value \"%s\" in \"%s\" directive, "
+                           "it must be \"on\" or \"off\"",
+                           value[1].data, cmd->name.data);
         return NGX_CONF_ERROR;
     }
 
@@ -1062,15 +967,13 @@ ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_str_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_str_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_str_t        *field, *value;
-    ngx_conf_post_t  *post;
+    ngx_str_t *field, *value;
+    ngx_conf_post_t *post;
 
-    field = (ngx_str_t *) (p + cmd->offset);
+    field = (ngx_str_t *)(p + cmd->offset);
 
     if (field->data) {
         return "is duplicate";
@@ -1089,16 +992,14 @@ ngx_conf_set_str_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_str_array_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_str_array_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_str_t         *value, *s;
-    ngx_array_t      **a;
-    ngx_conf_post_t   *post;
+    ngx_str_t *value, *s;
+    ngx_array_t **a;
+    ngx_conf_post_t *post;
 
-    a = (ngx_array_t **) (p + cmd->offset);
+    a = (ngx_array_t **)(p + cmd->offset);
 
     if (*a == NGX_CONF_UNSET_PTR) {
         *a = ngx_array_create(cf->pool, 4, sizeof(ngx_str_t));
@@ -1125,17 +1026,15 @@ ngx_conf_set_str_array_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_keyval_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_keyval_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_str_t         *value;
-    ngx_array_t      **a;
-    ngx_keyval_t      *kv;
-    ngx_conf_post_t   *post;
+    ngx_str_t *value;
+    ngx_array_t **a;
+    ngx_keyval_t *kv;
+    ngx_conf_post_t *post;
 
-    a = (ngx_array_t **) (p + cmd->offset);
+    a = (ngx_array_t **)(p + cmd->offset);
 
     if (*a == NGX_CONF_UNSET_PTR || *a == NULL) {
         *a = ngx_array_create(cf->pool, 4, sizeof(ngx_keyval_t));
@@ -1163,17 +1062,15 @@ ngx_conf_set_keyval_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_num_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_num_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_int_t        *np;
-    ngx_str_t        *value;
-    ngx_conf_post_t  *post;
+    ngx_int_t *np;
+    ngx_str_t *value;
+    ngx_conf_post_t *post;
 
 
-    np = (ngx_int_t *) (p + cmd->offset);
+    np = (ngx_int_t *)(p + cmd->offset);
 
     if (*np != NGX_CONF_UNSET) {
         return "is duplicate";
@@ -1194,17 +1091,15 @@ ngx_conf_set_num_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    size_t           *sp;
-    ngx_str_t        *value;
-    ngx_conf_post_t  *post;
+    size_t *sp;
+    ngx_str_t *value;
+    ngx_conf_post_t *post;
 
 
-    sp = (size_t *) (p + cmd->offset);
+    sp = (size_t *)(p + cmd->offset);
     if (*sp != NGX_CONF_UNSET_SIZE) {
         return "is duplicate";
     }
@@ -1212,7 +1107,7 @@ ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     *sp = ngx_parse_size(&value[1]);
-    if (*sp == (size_t) NGX_ERROR) {
+    if (*sp == (size_t)NGX_ERROR) {
         return "invalid value";
     }
 
@@ -1225,17 +1120,15 @@ ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_off_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_off_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    off_t            *op;
-    ngx_str_t        *value;
-    ngx_conf_post_t  *post;
+    off_t *op;
+    ngx_str_t *value;
+    ngx_conf_post_t *post;
 
 
-    op = (off_t *) (p + cmd->offset);
+    op = (off_t *)(p + cmd->offset);
     if (*op != NGX_CONF_UNSET) {
         return "is duplicate";
     }
@@ -1243,7 +1136,7 @@ ngx_conf_set_off_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     *op = ngx_parse_offset(&value[1]);
-    if (*op == (off_t) NGX_ERROR) {
+    if (*op == (off_t)NGX_ERROR) {
         return "invalid value";
     }
 
@@ -1256,17 +1149,15 @@ ngx_conf_set_off_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_msec_t       *msp;
-    ngx_str_t        *value;
-    ngx_conf_post_t  *post;
+    ngx_msec_t *msp;
+    ngx_str_t *value;
+    ngx_conf_post_t *post;
 
 
-    msp = (ngx_msec_t *) (p + cmd->offset);
+    msp = (ngx_msec_t *)(p + cmd->offset);
     if (*msp != NGX_CONF_UNSET_MSEC) {
         return "is duplicate";
     }
@@ -1274,7 +1165,7 @@ ngx_conf_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     *msp = ngx_parse_time(&value[1], 0);
-    if (*msp == (ngx_msec_t) NGX_ERROR) {
+    if (*msp == (ngx_msec_t)NGX_ERROR) {
         return "invalid value";
     }
 
@@ -1287,17 +1178,15 @@ ngx_conf_set_msec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_sec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_sec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    time_t           *sp;
-    ngx_str_t        *value;
-    ngx_conf_post_t  *post;
+    time_t *sp;
+    ngx_str_t *value;
+    ngx_conf_post_t *post;
 
 
-    sp = (time_t *) (p + cmd->offset);
+    sp = (time_t *)(p + cmd->offset);
     if (*sp != NGX_CONF_UNSET) {
         return "is duplicate";
     }
@@ -1305,7 +1194,7 @@ ngx_conf_set_sec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     *sp = ngx_parse_time(&value[1], 1);
-    if (*sp == (time_t) NGX_ERROR) {
+    if (*sp == (time_t)NGX_ERROR) {
         return "invalid value";
     }
 
@@ -1318,16 +1207,14 @@ ngx_conf_set_sec_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_bufs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
+char *ngx_conf_set_bufs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     char *p = conf;
 
-    ngx_str_t   *value;
-    ngx_bufs_t  *bufs;
+    ngx_str_t *value;
+    ngx_bufs_t *bufs;
 
 
-    bufs = (ngx_bufs_t *) (p + cmd->offset);
+    bufs = (ngx_bufs_t *)(p + cmd->offset);
     if (bufs->num) {
         return "is duplicate";
     }
@@ -1340,7 +1227,7 @@ ngx_conf_set_bufs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     bufs->size = ngx_parse_size(&value[2]);
-    if (bufs->size == (size_t) NGX_ERROR || bufs->size == 0) {
+    if (bufs->size == (size_t)NGX_ERROR || bufs->size == 0) {
         return "invalid value";
     }
 
@@ -1348,16 +1235,14 @@ ngx_conf_set_bufs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-char *
-ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_uint_t       *np, i;
-    ngx_str_t        *value;
-    ngx_conf_enum_t  *e;
+    ngx_uint_t *np, i;
+    ngx_str_t *value;
+    ngx_conf_enum_t *e;
 
-    np = (ngx_uint_t *) (p + cmd->offset);
+    np = (ngx_uint_t *)(p + cmd->offset);
 
     if (*np != NGX_CONF_UNSET_UINT) {
         return "is duplicate";
@@ -1367,9 +1252,7 @@ ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     e = cmd->post;
 
     for (i = 0; e[i].name.len != 0; i++) {
-        if (e[i].name.len != value[1].len
-            || ngx_strcasecmp(e[i].name.data, value[1].data) != 0)
-        {
+        if (e[i].name.len != value[1].len || ngx_strcasecmp(e[i].name.data, value[1].data) != 0) {
             continue;
         }
 
@@ -1378,39 +1261,32 @@ ngx_conf_set_enum_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_OK;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid value \"%s\"", value[1].data);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%s\"", value[1].data);
 
     return NGX_CONF_ERROR;
 }
 
 
-char *
-ngx_conf_set_bitmask_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
+char *ngx_conf_set_bitmask_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+    char *p = conf;
 
-    ngx_uint_t          *np, i, m;
-    ngx_str_t           *value;
-    ngx_conf_bitmask_t  *mask;
+    ngx_uint_t *np, i, m;
+    ngx_str_t *value;
+    ngx_conf_bitmask_t *mask;
 
 
-    np = (ngx_uint_t *) (p + cmd->offset);
+    np = (ngx_uint_t *)(p + cmd->offset);
     value = cf->args->elts;
     mask = cmd->post;
 
     for (i = 1; i < cf->args->nelts; i++) {
         for (m = 0; mask[m].name.len != 0; m++) {
-
-            if (mask[m].name.len != value[i].len
-                || ngx_strcasecmp(mask[m].name.data, value[i].data) != 0)
-            {
+            if (mask[m].name.len != value[i].len || ngx_strcasecmp(mask[m].name.data, value[i].data) != 0) {
                 continue;
             }
 
             if (*np & mask[m].mask) {
-                ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                                   "duplicate value \"%s\"", value[i].data);
+                ngx_conf_log_error(NGX_LOG_WARN, cf, 0, "duplicate value \"%s\"", value[i].data);
 
             } else {
                 *np |= mask[m].mask;
@@ -1420,8 +1296,7 @@ ngx_conf_set_bitmask_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
         if (mask[m].name.len == 0) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid value \"%s\"", value[i].data);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value \"%s\"", value[i].data);
 
             return NGX_CONF_ERROR;
         }
@@ -1442,10 +1317,8 @@ ngx_conf_unsupported(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
 
 
-char *
-ngx_conf_deprecated(ngx_conf_t *cf, void *post, void *data)
-{
-    ngx_conf_deprecated_t  *d = post;
+char *ngx_conf_deprecated(ngx_conf_t *cf, void *post, void *data) {
+    ngx_conf_deprecated_t *d = post;
 
     ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
                        "the \"%s\" directive is deprecated, "
@@ -1456,20 +1329,16 @@ ngx_conf_deprecated(ngx_conf_t *cf, void *post, void *data)
 }
 
 
-char *
-ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data)
-{
-    ngx_conf_num_bounds_t  *bounds = post;
-    ngx_int_t  *np = data;
+char *ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data) {
+    ngx_conf_num_bounds_t *bounds = post;
+    ngx_int_t *np = data;
 
     if (bounds->high == -1) {
         if (*np >= bounds->low) {
             return NGX_CONF_OK;
         }
 
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "value must be equal to or greater than %i",
-                           bounds->low);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "value must be equal to or greater than %i", bounds->low);
 
         return NGX_CONF_ERROR;
     }
@@ -1478,9 +1347,7 @@ ngx_conf_check_num_bounds(ngx_conf_t *cf, void *post, void *data)
         return NGX_CONF_OK;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "value must be between %i and %i",
-                       bounds->low, bounds->high);
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "value must be between %i and %i", bounds->low, bounds->high);
 
     return NGX_CONF_ERROR;
 }

@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
 
 
@@ -156,10 +156,10 @@ ngx_event_post_acceptex(ngx_listening_t *ls, ngx_uint_t n)
         *log = ls->log;
         c->log = log;
 
-        c->recv = ngx_recv;
-        c->send = ngx_send;
-        c->recv_chain = ngx_recv_chain;
-        c->send_chain = ngx_send_chain;
+        c->recv = ngx_io.recv;
+        c->send = ngx_io.send;
+        c->recv_chain = ngx_io.recv_chain;
+        c->send_chain = ngx_io.send_chain;
 
         c->listening = ls;
 
@@ -176,7 +176,7 @@ ngx_event_post_acceptex(ngx_listening_t *ls, ngx_uint_t n)
         rev->log = c->log;
         wev->log = c->log;
 
-        if (ngx_add_event(rev, 0, NGX_IOCP_IO) == NGX_ERROR) {
+        if (ngx_event_actions.add(rev, 0, NGX_IOCP_IO) == NGX_ERROR) {
             ngx_close_posted_connection(c);
             return NGX_ERROR;
         }

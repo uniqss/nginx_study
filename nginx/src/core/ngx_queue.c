@@ -1,23 +1,12 @@
-
-/*
- * Copyright (C) Igor Sysoev
- * Copyright (C) Nginx, Inc.
- */
-
-
-#include <ngx_config.h>
-#include <ngx_core.h>
-
+#include <ngx_queue.h>
 
 /*
  * find the middle queue element if the queue has odd number of elements
  * or the first element of the queue's second part otherwise
  */
 
-ngx_queue_t *
-ngx_queue_middle(ngx_queue_t *queue)
-{
-    ngx_queue_t  *middle, *next;
+ngx_queue_t *ngx_queue_middle(ngx_queue_t *queue) {
+    ngx_queue_t *middle, *next;
 
     middle = ngx_queue_head(queue);
 
@@ -27,7 +16,7 @@ ngx_queue_middle(ngx_queue_t *queue)
 
     next = ngx_queue_head(queue);
 
-    for ( ;; ) {
+    for (;;) {
         middle = ngx_queue_next(middle);
 
         next = ngx_queue_next(next);
@@ -47,11 +36,8 @@ ngx_queue_middle(ngx_queue_t *queue)
 
 /* the stable insertion sort */
 
-void
-ngx_queue_sort(ngx_queue_t *queue,
-    ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *))
-{
-    ngx_queue_t  *q, *prev, *next;
+void ngx_queue_sort(ngx_queue_t *queue, ngx_int_t (*cmp)(const ngx_queue_t *, const ngx_queue_t *)) {
+    ngx_queue_t *q, *prev, *next;
 
     q = ngx_queue_head(queue);
 
@@ -60,7 +46,6 @@ ngx_queue_sort(ngx_queue_t *queue,
     }
 
     for (q = ngx_queue_next(q); q != ngx_queue_sentinel(queue); q = next) {
-
         prev = ngx_queue_prev(q);
         next = ngx_queue_next(q);
 

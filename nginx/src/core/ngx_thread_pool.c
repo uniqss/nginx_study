@@ -7,7 +7,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_thread_pool.h>
 
 
@@ -111,7 +111,7 @@ ngx_thread_pool_init(ngx_thread_pool_t *tp, ngx_log_t *log, ngx_pool_t *pool)
     ngx_uint_t      n;
     pthread_attr_t  attr;
 
-    if (ngx_notify == NULL) {
+    if (ngx_event_actions.notify == NULL) {
         ngx_log_error(NGX_LOG_ALERT, log, 0,
                "the configured event method cannot be used with thread pools");
         return NGX_ERROR;
@@ -356,7 +356,7 @@ ngx_thread_pool_cycle(void *data)
 
         ngx_unlock(&ngx_thread_pool_done_lock);
 
-        (void) ngx_notify(ngx_thread_pool_handler);
+        (void) ngx_event_actions.notify(ngx_thread_pool_handler);
     }
 }
 

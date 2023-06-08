@@ -5,9 +5,26 @@
  */
 
 
+#include <ngx_conf_file.h>
+#include <ngx_module.h>
+#include <ngx_cycle.h>
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_string.h>
+#include <ngx_hash.h>
+#include <ngx_regex.h>
+#include <ngx_resolver.h>
+#include <ngx_slab.h>
+#include <ngx_open_file_cache.h>
+#include <ngx_event_openssl.h>
 #include <ngx_http.h>
+#include <ngx_parse.h>
+#include <ngx_parse_time.h>
+#include <ngx_proxy_protocol.h>
+#include <ngx_process_cycle.h>
+#include <ngx_syslog.h>
+#include <ngx_files.h>
+#include <nginx.h>
 
 
 #define NGX_HTTP_USERID_OFF   0

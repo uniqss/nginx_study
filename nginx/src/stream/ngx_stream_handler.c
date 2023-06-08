@@ -1,13 +1,25 @@
-
-/*
- * Copyright (C) Roman Arutyunyan
- * Copyright (C) Nginx, Inc.
- */
-
-
+#include <ngx_conf_file.h>
+#include <ngx_module.h>
+#include <ngx_cycle.h>
 #include <ngx_config.h>
-#include <ngx_core.h>
-#include <ngx_event.h>
+#include <ngx_core_def.h>
+#include <ngx_string.h>
+#include <ngx_hash.h>
+#include <ngx_regex.h>
+#include <ngx_resolver.h>
+#include <ngx_slab.h>
+#include <ngx_open_file_cache.h>
+#include <ngx_event_openssl.h>
+#include <ngx_http.h>
+#include <ngx_parse.h>
+#include <ngx_parse_time.h>
+#include <ngx_proxy_protocol.h>
+#include <ngx_process_cycle.h>
+#include <ngx_syslog.h>
+#include <ngx_files.h>
+#include <nginx.h>
+#include <ngx_crc32.h>
+#include <ngx_rwlock.h>
 #include <ngx_stream.h>
 
 
@@ -182,7 +194,7 @@ ngx_stream_init_connection(ngx_connection_t *c)
         rev->handler = ngx_stream_proxy_protocol_handler;
 
         if (!rev->ready) {
-            ngx_add_timer(rev, cscf->proxy_protocol_timeout);
+            ngx_event_add_timer(rev, cscf->proxy_protocol_timeout);
 
             if (ngx_handle_read_event(rev, 0) != NGX_OK) {
                 ngx_stream_finalize_session(s,
@@ -239,7 +251,7 @@ ngx_stream_proxy_protocol_handler(ngx_event_t *rev)
                 cscf = ngx_stream_get_module_srv_conf(s,
                                                       ngx_stream_core_module);
 
-                ngx_add_timer(rev, cscf->proxy_protocol_timeout);
+                ngx_event_add_timer(rev, cscf->proxy_protocol_timeout);
             }
 
             if (ngx_handle_read_event(rev, 0) != NGX_OK) {
@@ -257,7 +269,7 @@ ngx_stream_proxy_protocol_handler(ngx_event_t *rev)
     }
 
     if (rev->timer_set) {
-        ngx_del_timer(rev);
+        ngx_event_del_timer(rev);
     }
 
     p = ngx_proxy_protocol_read(c, buf, buf + n);

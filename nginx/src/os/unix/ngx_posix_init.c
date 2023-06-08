@@ -6,8 +6,12 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <nginx.h>
+#include <ngx_os.h>
+#include <ngx_times.h>
+#include <ngx_palloc.h>
+#include <ngx_log.h>
 
 
 ngx_int_t   ngx_ncpu;

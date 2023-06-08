@@ -6,17 +6,15 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 
 #if (NGX_HAVE_DLOPEN)
 
-char *
-ngx_dlerror(void)
-{
-    char  *err;
+char *ngx_dlerror(void) {
+    char *err;
 
-    err = (char *) dlerror();
+    err = (char *)dlerror();
 
     if (err == NULL) {
         return "";

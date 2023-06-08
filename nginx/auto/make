@@ -513,7 +513,7 @@ do
     cat << END                                    > $ngx_modules_c
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 END
 

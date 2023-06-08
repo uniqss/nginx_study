@@ -4,11 +4,29 @@
  * Copyright (C) Valentin V. Bartenev
  */
 
-
+#include <ngx_conf_file.h>
+#include <ngx_module.h>
+#include <ngx_cycle.h>
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_string.h>
+#include <ngx_hash.h>
+#include <ngx_regex.h>
+#include <ngx_resolver.h>
+#include <ngx_slab.h>
+#include <ngx_open_file_cache.h>
+#include <ngx_event_openssl.h>
 #include <ngx_http.h>
+#include <ngx_parse.h>
+#include <ngx_parse_time.h>
+#include <ngx_proxy_protocol.h>
+#include <ngx_process_cycle.h>
+#include <ngx_syslog.h>
+#include <ngx_files.h>
+#include <nginx.h>
 #include <ngx_http_v2_module.h>
+#include <ngx_log.h>
+#include <ngx_socket.h>
 
 
 typedef struct {
@@ -329,7 +347,7 @@ ngx_http_v2_init(ngx_event_t *rev)
     if (!rev->timer_set) {
         cscf = ngx_http_get_module_srv_conf(hc->conf_ctx,
                                             ngx_http_core_module);
-        ngx_add_timer(rev, cscf->client_header_timeout);
+        ngx_event_add_timer(rev, cscf->client_header_timeout);
     }
 
     c->idle = 1;
@@ -490,7 +508,7 @@ ngx_http_v2_write_handler(ngx_event_t *wev)
     if (h2c->last_out == NULL && !c->buffered) {
 
         if (wev->timer_set) {
-            ngx_del_timer(wev);
+            ngx_event_del_timer(wev);
         }
 
         ngx_http_v2_handle_connection(h2c);
@@ -609,12 +627,12 @@ ngx_http_v2_send_output_queue(ngx_http_v2_connection_t *h2c)
     h2c->last_out = frame;
 
     if (!wev->ready) {
-        ngx_add_timer(wev, clcf->send_timeout);
+        ngx_event_add_timer(wev, clcf->send_timeout);
         return NGX_AGAIN;
     }
 
     if (wev->timer_set) {
-        ngx_del_timer(wev);
+        ngx_event_del_timer(wev);
     }
 
     return NGX_OK;
@@ -677,7 +695,7 @@ ngx_http_v2_handle_connection(ngx_http_v2_connection_t *h2c)
                                         ngx_http_core_module);
 
     if (!c->read->timer_set) {
-        ngx_add_timer(c->read, clcf->keepalive_timeout);
+        ngx_event_add_timer(c->read, clcf->keepalive_timeout);
     }
 
     ngx_reusable_connection(c, 1);
@@ -705,7 +723,7 @@ ngx_http_v2_handle_connection(ngx_http_v2_connection_t *h2c)
     c->read->handler = ngx_http_v2_idle_handler;
 
     if (c->write->timer_set) {
-        ngx_del_timer(c->write);
+        ngx_event_del_timer(c->write);
     }
 }
 
@@ -762,7 +780,7 @@ ngx_http_v2_lingering_close(ngx_connection_t *c)
     wev->handler = ngx_http_empty_handler;
 
     if (wev->active && (ngx_event_flags & NGX_USE_LEVEL_EVENT)) {
-        if (ngx_del_event(wev, NGX_WRITE_EVENT, 0) != NGX_OK) {
+        if (ngx_event_actions.del(wev, NGX_WRITE_EVENT, 0) != NGX_OK) {
             ngx_http_close_connection(c);
             return;
         }
@@ -778,7 +796,7 @@ ngx_http_v2_lingering_close(ngx_connection_t *c)
     c->close = 0;
     ngx_reusable_connection(c, 1);
 
-    ngx_add_timer(rev, clcf->lingering_timeout);
+    ngx_event_add_timer(rev, clcf->lingering_timeout);
 
     if (rev->ready) {
         ngx_http_v2_lingering_close_handler(rev);
@@ -842,7 +860,7 @@ ngx_http_v2_lingering_close_handler(ngx_event_t *rev)
         timer = clcf->lingering_timeout;
     }
 
-    ngx_add_timer(rev, timer);
+    ngx_event_add_timer(rev, timer);
 }
 
 
@@ -2652,7 +2670,7 @@ ngx_http_v2_state_headers_save(ngx_http_v2_connection_t *h2c, u_char *pos,
 
         if (!rev->timer_set) {
             cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
-            ngx_add_timer(rev, cscf->client_header_timeout);
+            ngx_event_add_timer(rev, cscf->client_header_timeout);
         }
     }
 
@@ -3300,7 +3318,7 @@ ngx_http_v2_create_stream(ngx_http_v2_connection_t *h2c, ngx_uint_t push)
     h2c->priority_limit += h2scf->concurrent_streams;
 
     if (h2c->connection->read->timer_set) {
-        ngx_del_timer(h2c->connection->read);
+        ngx_event_del_timer(h2c->connection->read);
     }
 
     return stream;
@@ -4139,7 +4157,7 @@ ngx_http_v2_read_request_body(ngx_http_request_t *r)
     }
 
     if (!buf) {
-        ngx_add_timer(r->connection->read, clcf->client_body_timeout);
+        ngx_event_add_timer(r->connection->read, clcf->client_body_timeout);
     }
 
     r->read_event_handler = ngx_http_v2_read_client_request_body_handler;
@@ -4248,7 +4266,7 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
 
         if (size == 0) {
             clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-            ngx_add_timer(fc->read, clcf->client_body_timeout);
+            ngx_event_add_timer(fc->read, clcf->client_body_timeout);
 
             if (!flush) {
                 ngx_post_event(fc->read, &ngx_posted_events);
@@ -4259,7 +4277,7 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
     }
 
     if (fc->read->timer_set) {
-        ngx_del_timer(fc->read);
+        ngx_event_del_timer(fc->read);
     }
 
     if (r->request_body_no_buffering) {
@@ -4684,7 +4702,7 @@ ngx_http_v2_close_stream(ngx_http_v2_stream_t *stream, ngx_int_t rc)
     ev = fc->read;
 
     if (ev->timer_set) {
-        ngx_del_timer(ev);
+        ngx_event_del_timer(ev);
     }
 
     if (ev->posted) {
@@ -4694,7 +4712,7 @@ ngx_http_v2_close_stream(ngx_http_v2_stream_t *stream, ngx_int_t rc)
     ev = fc->write;
 
     if (ev->timer_set) {
-        ngx_del_timer(ev);
+        ngx_event_del_timer(ev);
     }
 
     if (ev->posted) {

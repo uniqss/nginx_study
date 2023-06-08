@@ -8,7 +8,7 @@
 #define PERL_NO_GET_CONTEXT
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_http.h>
 #include <ngx_http_perl_module.h>
 
@@ -1149,7 +1149,7 @@ sleep(r, sleep, next)
     ctx->next = SvRV(ST(2));
 
     r->connection->write->delayed = 1;
-    ngx_add_timer(r->connection->write, sleep);
+    ngx_event_add_timer(r->connection->write, sleep);
 
     r->write_event_handler = ngx_http_perl_sleep_handler;
     r->main->count++;

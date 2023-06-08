@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
 #include <ngx_event_connect.h>
 #include <ngx_mail.h>
@@ -159,7 +159,7 @@ ngx_mail_proxy_init(ngx_mail_session_t *s, ngx_addr_t *peer)
         return;
     }
 
-    ngx_add_timer(p->upstream.connection->read, cscf->timeout);
+    ngx_event_add_timer(p->upstream.connection->read, cscf->timeout);
 
     p->upstream.connection->data = s;
     p->upstream.connection->pool = s->connection->pool;
@@ -321,8 +321,8 @@ ngx_mail_proxy_pop3_handler(ngx_event_t *rev)
         c->write->handler = ngx_mail_proxy_handler;
 
         pcf = ngx_mail_get_module_srv_conf(s, ngx_mail_proxy_module);
-        ngx_add_timer(s->connection->read, pcf->timeout);
-        ngx_del_timer(c->read);
+        ngx_event_add_timer(s->connection->read, pcf->timeout);
+        ngx_event_del_timer(c->read);
 
         c->log->action = NULL;
         ngx_log_error(NGX_LOG_INFO, c->log, 0, "client logged in");
@@ -482,8 +482,8 @@ ngx_mail_proxy_imap_handler(ngx_event_t *rev)
         c->write->handler = ngx_mail_proxy_handler;
 
         pcf = ngx_mail_get_module_srv_conf(s, ngx_mail_proxy_module);
-        ngx_add_timer(s->connection->read, pcf->timeout);
-        ngx_del_timer(c->read);
+        ngx_event_add_timer(s->connection->read, pcf->timeout);
+        ngx_event_del_timer(c->read);
 
         c->log->action = NULL;
         ngx_log_error(NGX_LOG_INFO, c->log, 0, "client logged in");
@@ -819,8 +819,8 @@ ngx_mail_proxy_smtp_handler(ngx_event_t *rev)
         c->write->handler = ngx_mail_proxy_handler;
 
         pcf = ngx_mail_get_module_srv_conf(s, ngx_mail_proxy_module);
-        ngx_add_timer(s->connection->read, pcf->timeout);
-        ngx_del_timer(c->read);
+        ngx_event_add_timer(s->connection->read, pcf->timeout);
+        ngx_event_del_timer(c->read);
 
         c->log->action = NULL;
         ngx_log_error(NGX_LOG_INFO, c->log, 0, "client logged in");
@@ -1278,7 +1278,7 @@ ngx_mail_proxy_handler(ngx_event_t *ev)
 
     if (c == s->connection) {
         pcf = ngx_mail_get_module_srv_conf(s, ngx_mail_proxy_module);
-        ngx_add_timer(c->read, pcf->timeout);
+        ngx_event_add_timer(c->read, pcf->timeout);
     }
 }
 

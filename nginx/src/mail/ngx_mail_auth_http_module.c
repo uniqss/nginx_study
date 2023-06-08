@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
 #include <ngx_event_connect.h>
 #include <ngx_mail.h>
@@ -222,8 +222,8 @@ ngx_mail_auth_http_init(ngx_mail_session_t *s)
 
     ctx->handler = ngx_mail_auth_http_ignore_status_line;
 
-    ngx_add_timer(ctx->peer.connection->read, ahcf->timeout);
-    ngx_add_timer(ctx->peer.connection->write, ahcf->timeout);
+    ngx_event_add_timer(ctx->peer.connection->read, ahcf->timeout);
+    ngx_event_add_timer(ctx->peer.connection->write, ahcf->timeout);
 
     if (rc == NGX_OK) {
         ngx_mail_auth_http_write_handler(ctx->peer.connection->write);
@@ -260,7 +260,7 @@ ngx_mail_auth_http_write_handler(ngx_event_t *wev)
 
     size = ctx->request->last - ctx->request->pos;
 
-    n = ngx_send(c, ctx->request->pos, size);
+    n = ngx_io.send(c, ctx->request->pos, size);
 
     if (n == NGX_ERROR) {
         ngx_close_connection(c);
@@ -276,7 +276,7 @@ ngx_mail_auth_http_write_handler(ngx_event_t *wev)
             wev->handler = ngx_mail_auth_http_dummy_handler;
 
             if (wev->timer_set) {
-                ngx_del_timer(wev);
+                ngx_event_del_timer(wev);
             }
 
             if (ngx_handle_write_event(wev, 0) != NGX_OK) {
@@ -291,7 +291,7 @@ ngx_mail_auth_http_write_handler(ngx_event_t *wev)
 
     if (!wev->timer_set) {
         ahcf = ngx_mail_get_module_srv_conf(s, ngx_mail_auth_http_module);
-        ngx_add_timer(wev, ahcf->timeout);
+        ngx_event_add_timer(wev, ahcf->timeout);
     }
 }
 
@@ -333,7 +333,7 @@ ngx_mail_auth_http_read_handler(ngx_event_t *rev)
 
     size = ctx->response->end - ctx->response->last;
 
-    n = ngx_recv(c, ctx->response->pos, size);
+    n = ngx_io.recv(c, ctx->response->pos, size);
 
     if (n > 0) {
         ctx->response->last += n;
@@ -728,7 +728,7 @@ ngx_mail_auth_http_process_headers(ngx_mail_session_t *s,
                     return;
                 }
 
-                ngx_add_timer(s->connection->read, (ngx_msec_t) (timer * 1000));
+                ngx_event_add_timer(s->connection->read, (ngx_msec_t) (timer * 1000));
 
                 s->connection->read->handler = ngx_mail_auth_sleep_handler;
 
@@ -745,7 +745,7 @@ ngx_mail_auth_http_process_headers(ngx_mail_session_t *s,
                     return;
                 }
 
-                ngx_add_timer(s->connection->read, (ngx_msec_t) (timer * 1000));
+                ngx_event_add_timer(s->connection->read, (ngx_msec_t) (timer * 1000));
 
                 s->connection->read->handler = ngx_mail_auth_sleep_handler;
 
@@ -892,7 +892,7 @@ ngx_mail_auth_sleep_handler(ngx_event_t *rev)
             return;
         }
 
-        ngx_add_timer(rev, cscf->timeout);
+        ngx_event_add_timer(rev, cscf->timeout);
 
         if (rev->ready) {
             rev->handler(rev);

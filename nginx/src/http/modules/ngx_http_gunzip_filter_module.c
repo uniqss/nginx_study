@@ -7,7 +7,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_http.h>
 
 #include <zlib.h>

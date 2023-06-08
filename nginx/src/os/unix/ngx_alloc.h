@@ -1,22 +1,12 @@
-
-/*
- * Copyright (C) Igor Sysoev
- * Copyright (C) Nginx, Inc.
- */
-
-
-#ifndef _NGX_ALLOC_H_INCLUDED_
-#define _NGX_ALLOC_H_INCLUDED_
-
+#pragma once
 
 #include <ngx_config.h>
-#include <ngx_core.h>
-
+#include <ngx_core_def.h>
 
 void *ngx_alloc(size_t size, ngx_log_t *log);
 void *ngx_calloc(size_t size, ngx_log_t *log);
 
-#define ngx_free          free
+#define ngx_free free
 
 
 /*
@@ -32,14 +22,11 @@ void *ngx_memalign(size_t alignment, size_t size, ngx_log_t *log);
 
 #else
 
-#define ngx_memalign(alignment, size, log)  ngx_alloc(size, log)
+#define ngx_memalign(alignment, size, log) ngx_alloc(size, log)
 
 #endif
 
 
-extern ngx_uint_t  ngx_pagesize;
-extern ngx_uint_t  ngx_pagesize_shift;
-extern ngx_uint_t  ngx_cacheline_size;
-
-
-#endif /* _NGX_ALLOC_H_INCLUDED_ */
+extern ngx_uint_t ngx_pagesize;
+extern ngx_uint_t ngx_pagesize_shift;
+extern ngx_uint_t ngx_cacheline_size;

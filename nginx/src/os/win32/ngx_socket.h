@@ -10,7 +10,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 
 #define NGX_WRITE_SHUTDOWN SD_SEND

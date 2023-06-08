@@ -1,20 +1,7 @@
-
-/*
- * Copyright (C) Igor Sysoev
- * Copyright (C) Nginx, Inc.
- */
-
-
-#ifndef _NGX_CRYPT_H_INCLUDED_
-#define _NGX_CRYPT_H_INCLUDED_
-
+#pragma once
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 
-ngx_int_t ngx_crypt(ngx_pool_t *pool, u_char *key, u_char *salt,
-    u_char **encrypted);
-
-
-#endif /* _NGX_CRYPT_H_INCLUDED_ */
+ngx_int_t ngx_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted);

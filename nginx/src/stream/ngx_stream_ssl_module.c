@@ -6,7 +6,7 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_stream.h>
 
 
@@ -420,7 +420,7 @@ ngx_stream_ssl_init_connection(ngx_ssl_t *ssl, ngx_connection_t *c)
     if (rc == NGX_AGAIN) {
         sslcf = ngx_stream_get_module_srv_conf(s, ngx_stream_ssl_module);
 
-        ngx_add_timer(c->read, sslcf->handshake_timeout);
+        ngx_event_add_timer(c->read, sslcf->handshake_timeout);
 
         c->ssl->handler = ngx_stream_ssl_handshake_handler;
 
@@ -446,7 +446,7 @@ ngx_stream_ssl_handshake_handler(ngx_connection_t *c)
     }
 
     if (c->read->timer_set) {
-        ngx_del_timer(c->read);
+        ngx_event_del_timer(c->read);
     }
 
     ngx_stream_core_run_phases(s);

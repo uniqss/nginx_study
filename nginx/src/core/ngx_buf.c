@@ -4,14 +4,11 @@
  * Copyright (C) Nginx, Inc.
  */
 
+#include <ngx_buf.h>
+#include <ngx_palloc.h>
+#include <ngx_file.h>
 
-#include <ngx_config.h>
-#include <ngx_core.h>
-
-
-ngx_buf_t *
-ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
-{
+ngx_buf_t *ngx_create_temp_buf(ngx_pool_t *pool, size_t size) {
     ngx_buf_t *b;
 
     b = ngx_calloc_buf(pool);
@@ -44,10 +41,8 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 }
 
 
-ngx_chain_t *
-ngx_alloc_chain_link(ngx_pool_t *pool)
-{
-    ngx_chain_t  *cl;
+ngx_chain_t *ngx_alloc_chain_link(ngx_pool_t *pool) {
+    ngx_chain_t *cl;
 
     cl = pool->chain;
 
@@ -65,13 +60,11 @@ ngx_alloc_chain_link(ngx_pool_t *pool)
 }
 
 
-ngx_chain_t *
-ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
-{
-    u_char       *p;
-    ngx_int_t     i;
-    ngx_buf_t    *b;
-    ngx_chain_t  *chain, *cl, **ll;
+ngx_chain_t *ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs) {
+    u_char *p;
+    ngx_int_t i;
+    ngx_buf_t *b;
+    ngx_chain_t *chain, *cl, **ll;
 
     p = ngx_palloc(pool, bufs->num * bufs->size);
     if (p == NULL) {
@@ -81,7 +74,6 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     ll = &chain;
 
     for (i = 0; i < bufs->num; i++) {
-
         b = ngx_calloc_buf(pool);
         if (b == NULL) {
             return NULL;
@@ -123,10 +115,8 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 }
 
 
-ngx_int_t
-ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
-{
-    ngx_chain_t  *cl, **ll;
+ngx_int_t ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in) {
+    ngx_chain_t *cl, **ll;
 
     ll = chain;
 
@@ -153,10 +143,8 @@ ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 }
 
 
-ngx_chain_t *
-ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
-{
-    ngx_chain_t  *cl;
+ngx_chain_t *ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free) {
+    ngx_chain_t *cl;
 
     if (*free) {
         cl = *free;
@@ -181,18 +169,17 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 }
 
 
-void
-ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
-    ngx_chain_t **out, ngx_buf_tag_t tag)
-{
-    ngx_chain_t  *cl;
+void ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy, ngx_chain_t **out,
+                             ngx_buf_tag_t tag) {
+    ngx_chain_t *cl;
 
     if (*out) {
         if (*busy == NULL) {
             *busy = *out;
 
         } else {
-            for (cl = *busy; cl->next; cl = cl->next) { /* void */ }
+            for (cl = *busy; cl->next; cl = cl->next) { /* void */
+            }
 
             cl->next = *out;
         }
@@ -223,12 +210,10 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
 }
 
 
-off_t
-ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
-{
-    off_t         total, size, aligned, fprev;
-    ngx_fd_t      fd;
-    ngx_chain_t  *cl;
+off_t ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit) {
+    off_t total, size, aligned, fprev;
+    ngx_fd_t fd;
+    ngx_chain_t *cl;
 
     total = 0;
 
@@ -241,8 +226,7 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
         if (size > limit - total) {
             size = limit - total;
 
-            aligned = (cl->buf->file_pos + size + ngx_pagesize - 1)
-                       & ~((off_t) ngx_pagesize - 1);
+            aligned = (cl->buf->file_pos + size + ngx_pagesize - 1) & ~((off_t)ngx_pagesize - 1);
 
             if (aligned <= cl->buf->file_last) {
                 size = aligned - cl->buf->file_pos;
@@ -256,11 +240,7 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
         fprev = cl->buf->file_pos + size;
         cl = cl->next;
 
-    } while (cl
-             && cl->buf->in_file
-             && total < limit
-             && fd == cl->buf->file->fd
-             && fprev == cl->buf->file_pos);
+    } while (cl && cl->buf->in_file && total < limit && fd == cl->buf->file->fd && fprev == cl->buf->file_pos);
 
     *in = cl;
 
@@ -268,13 +248,10 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
 }
 
 
-ngx_chain_t *
-ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
-{
-    off_t  size;
+ngx_chain_t *ngx_chain_update_sent(ngx_chain_t *in, off_t sent) {
+    off_t size;
 
-    for ( /* void */ ; in; in = in->next) {
-
+    for (/* void */; in; in = in->next) {
         if (ngx_buf_special(in->buf)) {
             continue;
         }
@@ -300,7 +277,7 @@ ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
         }
 
         if (ngx_buf_in_memory(in->buf)) {
-            in->buf->pos += (size_t) sent;
+            in->buf->pos += (size_t)sent;
         }
 
         if (in->buf->in_file) {

@@ -6,7 +6,7 @@
 
 
 #ifndef NGX_COMPILER
-#define NGX_COMPILER  "gcc 11.3.0 (Ubuntu 11.3.0-1ubuntu1~22.04.1) "
+#define NGX_COMPILER  "gcc 12.1.0 (Ubuntu 12.1.0-2ubuntu1~22.04) "
 #endif
 
 

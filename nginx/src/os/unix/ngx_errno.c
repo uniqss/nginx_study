@@ -5,11 +5,12 @@
  */
 
 
-#include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_errno.h>
+#include <ngx_core_def.h>
+#include <ngx_string.h>
 
 
-static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");
+static ngx_str_t ngx_unknown_error = ngx_string("Unknown error");
 
 
 #if (NGX_HAVE_STRERRORDESC_NP)
@@ -21,16 +22,14 @@ static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");
  */
 
 
-u_char *
-ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
-{
-    size_t       len;
-    const char  *msg;
+u_char *ngx_strerror(ngx_err_t err, u_char *errstr, size_t size) {
+    size_t len;
+    const char *msg;
 
     msg = strerrordesc_np(err);
 
     if (msg == NULL) {
-        msg = (char *) ngx_unknown_error.data;
+        msg = (char *)ngx_unknown_error.data;
         len = ngx_unknown_error.len;
 
     } else {
@@ -43,9 +42,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 }
 
 
-ngx_int_t
-ngx_strerror_init(void)
-{
+ngx_int_t ngx_strerror_init(void) {
     return NGX_OK;
 }
 
@@ -68,15 +65,13 @@ ngx_strerror_init(void)
  */
 
 
-static ngx_str_t  *ngx_sys_errlist;
-static ngx_err_t   ngx_first_error;
-static ngx_err_t   ngx_last_error;
+static ngx_str_t *ngx_sys_errlist;
+static ngx_err_t ngx_first_error;
+static ngx_err_t ngx_last_error;
 
 
-u_char *
-ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
-{
-    ngx_str_t  *msg;
+u_char *ngx_strerror(ngx_err_t err, u_char *errstr, size_t size) {
+    ngx_str_t *msg;
 
     if (err >= ngx_first_error && err < ngx_last_error) {
         msg = &ngx_sys_errlist[err - ngx_first_error];
@@ -91,13 +86,11 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 }
 
 
-ngx_int_t
-ngx_strerror_init(void)
-{
-    char       *msg;
-    u_char     *p;
-    size_t      len;
-    ngx_err_t   err;
+ngx_int_t ngx_strerror_init(void) {
+    char *msg;
+    u_char *p;
+    size_t len;
+    ngx_err_t err;
 
 #if (NGX_SYS_NERR)
     ngx_first_error = 0;
@@ -116,10 +109,7 @@ ngx_strerror_init(void)
         ngx_set_errno(0);
         msg = strerror(err);
 
-        if (errno == EINVAL
-            || msg == NULL
-            || strncmp(msg, "Unknown error", 13) == 0)
-        {
+        if (errno == EINVAL || msg == NULL || strncmp(msg, "Unknown error", 13) == 0) {
             continue;
         }
 
@@ -130,10 +120,7 @@ ngx_strerror_init(void)
         ngx_set_errno(0);
         msg = strerror(err);
 
-        if (errno == EINVAL
-            || msg == NULL
-            || strncmp(msg, "Unknown error", 13) == 0)
-        {
+        if (errno == EINVAL || msg == NULL || strncmp(msg, "Unknown error", 13) == 0) {
             continue;
         }
 
@@ -153,10 +140,7 @@ ngx_strerror_init(void)
         ngx_set_errno(0);
         msg = strerror(err);
 
-        if (errno == EINVAL
-            || msg == NULL
-            || strncmp(msg, "Unknown error", 13) == 0)
-        {
+        if (errno == EINVAL || msg == NULL || strncmp(msg, "Unknown error", 13) == 0) {
             continue;
         }
 

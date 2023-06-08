@@ -1386,7 +1386,7 @@ fi
 cat << END                                    > $NGX_MODULES_C
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 
 $NGX_PRAGMA
 

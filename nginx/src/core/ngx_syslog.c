@@ -4,15 +4,17 @@
  */
 
 
+#include <ngx_syslog.h>
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
 #include <ngx_event.h>
+#include <ngx_conf_file.h>
+#include <ngx_cycle.h>
 
 
-#define NGX_SYSLOG_MAX_STR                                                    \
-    NGX_MAX_ERROR_STR + sizeof("<255>Jan 01 00:00:00 ") - 1                   \
-    + (NGX_MAXHOSTNAMELEN - 1) + 1 /* space */                                \
-    + 32 /* tag */ + 2 /* colon, space */
+#define NGX_SYSLOG_MAX_STR                                                                             \
+    NGX_MAX_ERROR_STR + sizeof("<255>Jan 01 00:00:00 ") - 1 + (NGX_MAXHOSTNAMELEN - 1) + 1 /* space */ \
+        + 32 /* tag */ + 2                                                                 /* colon, space */
 
 
 static char *ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer);
@@ -21,26 +23,19 @@ static void ngx_syslog_cleanup(void *data);
 static u_char *ngx_syslog_log_error(ngx_log_t *log, u_char *buf, size_t len);
 
 
-static char  *facilities[] = {
-    "kern", "user", "mail", "daemon", "auth", "intern", "lpr", "news", "uucp",
-    "clock", "authpriv", "ftp", "ntp", "audit", "alert", "cron", "local0",
-    "local1", "local2", "local3", "local4", "local5", "local6", "local7",
-    NULL
-};
+static char *facilities[] = {"kern",   "user",     "mail",   "daemon", "auth",   "intern", "lpr",  "news",   "uucp",
+                             "clock",  "authpriv", "ftp",    "ntp",    "audit",  "alert",  "cron", "local0", "local1",
+                             "local2", "local3",   "local4", "local5", "local6", "local7", NULL};
 
 /* note 'error/warn' like in nginx.conf, not 'err/warning' */
-static char  *severities[] = {
-    "emerg", "alert", "crit", "error", "warn", "notice", "info", "debug", NULL
-};
+static char *severities[] = {"emerg", "alert", "crit", "error", "warn", "notice", "info", "debug", NULL};
 
-static ngx_log_t    ngx_syslog_dummy_log;
-static ngx_event_t  ngx_syslog_dummy_event;
+static ngx_log_t ngx_syslog_dummy_log;
+static ngx_event_t ngx_syslog_dummy_event;
 
 
-char *
-ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
-{
-    ngx_pool_cleanup_t  *cln;
+char *ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer) {
+    ngx_pool_cleanup_t *cln;
 
     peer->facility = NGX_CONF_UNSET_UINT;
     peer->severity = NGX_CONF_UNSET_UINT;
@@ -50,8 +45,7 @@ ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
     }
 
     if (peer->server.sockaddr == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "no syslog server specified");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no syslog server specified");
         return NGX_CONF_ERROR;
     }
 
@@ -70,7 +64,7 @@ ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
     peer->hostname = &cf->cycle->hostname;
     peer->logp = &cf->cycle->new_log;
 
-    peer->conn.fd = (ngx_socket_t) -1;
+    peer->conn.fd = (ngx_socket_t)-1;
 
     peer->conn.read = &ngx_syslog_dummy_event;
     peer->conn.write = &ngx_syslog_dummy_event;
@@ -89,21 +83,19 @@ ngx_syslog_process_conf(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
 }
 
 
-static char *
-ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
-{
-    u_char      *p, *comma, c;
-    size_t       len;
-    ngx_str_t   *value;
-    ngx_url_t    u;
-    ngx_uint_t   i;
+static char *ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer) {
+    u_char *p, *comma, c;
+    size_t len;
+    ngx_str_t *value;
+    ngx_url_t u;
+    ngx_uint_t i;
 
     value = cf->args->elts;
 
     p = value[1].data + sizeof("syslog:") - 1;
 
-    for ( ;; ) {
-        comma = (u_char *) ngx_strchr(p, ',');
+    for (;;) {
+        comma = (u_char *)ngx_strchr(p, ',');
 
         if (comma != NULL) {
             len = comma - p;
@@ -114,10 +106,8 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
         }
 
         if (ngx_strncmp(p, "server=", 7) == 0) {
-
             if (peer->server.sockaddr != NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "duplicate syslog \"server\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate syslog \"server\"");
                 return NGX_CONF_ERROR;
             }
 
@@ -129,9 +119,7 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
 
             if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
                 if (u.err) {
-                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                       "%s in syslog server \"%V\"",
-                                       u.err, &u.url);
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s in syslog server \"%V\"", u.err, &u.url);
                 }
 
                 return NGX_CONF_ERROR;
@@ -140,50 +128,40 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
             peer->server = u.addrs[0];
 
         } else if (ngx_strncmp(p, "facility=", 9) == 0) {
-
             if (peer->facility != NGX_CONF_UNSET_UINT) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "duplicate syslog \"facility\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate syslog \"facility\"");
                 return NGX_CONF_ERROR;
             }
 
             for (i = 0; facilities[i] != NULL; i++) {
-
                 if (ngx_strcmp(p + 9, facilities[i]) == 0) {
                     peer->facility = i;
                     goto next;
                 }
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "unknown syslog facility \"%s\"", p + 9);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown syslog facility \"%s\"", p + 9);
             return NGX_CONF_ERROR;
 
         } else if (ngx_strncmp(p, "severity=", 9) == 0) {
-
             if (peer->severity != NGX_CONF_UNSET_UINT) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "duplicate syslog \"severity\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate syslog \"severity\"");
                 return NGX_CONF_ERROR;
             }
 
             for (i = 0; severities[i] != NULL; i++) {
-
                 if (ngx_strcmp(p + 9, severities[i]) == 0) {
                     peer->severity = i;
                     goto next;
                 }
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "unknown syslog severity \"%s\"", p + 9);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown syslog severity \"%s\"", p + 9);
             return NGX_CONF_ERROR;
 
         } else if (ngx_strncmp(p, "tag=", 4) == 0) {
-
             if (peer->tag.data != NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "duplicate syslog \"tag\"");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "duplicate syslog \"tag\"");
                 return NGX_CONF_ERROR;
             }
 
@@ -192,8 +170,7 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
              * that MUST NOT exceed 32 characters.
              */
             if (len - 4 > 32) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "syslog tag length exceeds 32");
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "syslog tag length exceeds 32");
                 return NGX_CONF_ERROR;
             }
 
@@ -216,8 +193,7 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
             peer->nohostname = 1;
 
         } else {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "unknown syslog parameter \"%s\"", p);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unknown syslog parameter \"%s\"", p);
             return NGX_CONF_ERROR;
         }
 
@@ -234,30 +210,23 @@ ngx_syslog_parse_args(ngx_conf_t *cf, ngx_syslog_peer_t *peer)
 }
 
 
-u_char *
-ngx_syslog_add_header(ngx_syslog_peer_t *peer, u_char *buf)
-{
-    ngx_uint_t  pri;
+u_char *ngx_syslog_add_header(ngx_syslog_peer_t *peer, u_char *buf) {
+    ngx_uint_t pri;
 
     pri = peer->facility * 8 + peer->severity;
 
     if (peer->nohostname) {
-        return ngx_sprintf(buf, "<%ui>%V %V: ", pri, &ngx_cached_syslog_time,
-                           &peer->tag);
+        return ngx_sprintf(buf, "<%ui>%V %V: ", pri, &ngx_cached_syslog_time, &peer->tag);
     }
 
-    return ngx_sprintf(buf, "<%ui>%V %V %V: ", pri, &ngx_cached_syslog_time,
-                       peer->hostname, &peer->tag);
+    return ngx_sprintf(buf, "<%ui>%V %V %V: ", pri, &ngx_cached_syslog_time, peer->hostname, &peer->tag);
 }
 
 
-void
-ngx_syslog_writer(ngx_log_t *log, ngx_uint_t level, u_char *buf,
-    size_t len)
-{
-    u_char             *p, msg[NGX_SYSLOG_MAX_STR];
-    ngx_uint_t          head_len;
-    ngx_syslog_peer_t  *peer;
+void ngx_syslog_writer(ngx_log_t *log, ngx_uint_t level, u_char *buf, size_t len) {
+    u_char *p, msg[NGX_SYSLOG_MAX_STR];
+    ngx_uint_t head_len;
+    ngx_syslog_peer_t *peer;
 
     peer = log->wdata;
 
@@ -279,16 +248,14 @@ ngx_syslog_writer(ngx_log_t *log, ngx_uint_t level, u_char *buf,
 
     p = ngx_snprintf(p, len, "%s", buf);
 
-    (void) ngx_syslog_send(peer, msg, p - msg);
+    (void)ngx_syslog_send(peer, msg, p - msg);
 
     peer->busy = 0;
 }
 
 
-ssize_t
-ngx_syslog_send(ngx_syslog_peer_t *peer, u_char *buf, size_t len)
-{
-    ssize_t  n;
+ssize_t ngx_syslog_send(ngx_syslog_peer_t *peer, u_char *buf, size_t len) {
+    ssize_t n;
 
     if (peer->log.handler == NULL) {
         peer->log = *peer->logp;
@@ -297,14 +264,14 @@ ngx_syslog_send(ngx_syslog_peer_t *peer, u_char *buf, size_t len)
         peer->log.action = "logging to syslog";
     }
 
-    if (peer->conn.fd == (ngx_socket_t) -1) {
+    if (peer->conn.fd == (ngx_socket_t)-1) {
         if (ngx_syslog_init_peer(peer) != NGX_OK) {
             return NGX_ERROR;
         }
     }
 
-    if (ngx_send) {
-        n = ngx_send(&peer->conn, buf, len);
+    if (ngx_io.send) {
+        n = ngx_io.send(&peer->conn, buf, len);
 
     } else {
         /* event module has not yet set ngx_io */
@@ -312,40 +279,33 @@ ngx_syslog_send(ngx_syslog_peer_t *peer, u_char *buf, size_t len)
     }
 
     if (n == NGX_ERROR) {
-
         if (ngx_close_socket(peer->conn.fd) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                          ngx_close_socket_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, ngx_close_socket_n " failed");
         }
 
-        peer->conn.fd = (ngx_socket_t) -1;
+        peer->conn.fd = (ngx_socket_t)-1;
     }
 
     return n;
 }
 
 
-static ngx_int_t
-ngx_syslog_init_peer(ngx_syslog_peer_t *peer)
-{
-    ngx_socket_t  fd;
+static ngx_int_t ngx_syslog_init_peer(ngx_syslog_peer_t *peer) {
+    ngx_socket_t fd;
 
     fd = ngx_socket(peer->server.sockaddr->sa_family, SOCK_DGRAM, 0);
-    if (fd == (ngx_socket_t) -1) {
-        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                      ngx_socket_n " failed");
+    if (fd == (ngx_socket_t)-1) {
+        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, ngx_socket_n " failed");
         return NGX_ERROR;
     }
 
     if (ngx_nonblocking(fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                      ngx_nonblocking_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, ngx_nonblocking_n " failed");
         goto failed;
     }
 
     if (connect(fd, peer->server.sockaddr, peer->server.socklen) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                      "connect() failed");
+        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, "connect() failed");
         goto failed;
     }
 
@@ -360,38 +320,32 @@ ngx_syslog_init_peer(ngx_syslog_peer_t *peer)
 failed:
 
     if (ngx_close_socket(fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                      ngx_close_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, ngx_close_socket_n " failed");
     }
 
     return NGX_ERROR;
 }
 
 
-static void
-ngx_syslog_cleanup(void *data)
-{
-    ngx_syslog_peer_t  *peer = data;
+static void ngx_syslog_cleanup(void *data) {
+    ngx_syslog_peer_t *peer = data;
 
     /* prevents further use of this peer */
     peer->busy = 1;
 
-    if (peer->conn.fd == (ngx_socket_t) -1) {
+    if (peer->conn.fd == (ngx_socket_t)-1) {
         return;
     }
 
     if (ngx_close_socket(peer->conn.fd) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno,
-                      ngx_close_socket_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, &peer->log, ngx_socket_errno, ngx_close_socket_n " failed");
     }
 }
 
 
-static u_char *
-ngx_syslog_log_error(ngx_log_t *log, u_char *buf, size_t len)
-{
-    u_char             *p;
-    ngx_syslog_peer_t  *peer;
+static u_char *ngx_syslog_log_error(ngx_log_t *log, u_char *buf, size_t len) {
+    u_char *p;
+    ngx_syslog_peer_t *peer;
 
     p = buf;
 

@@ -5,31 +5,25 @@
  */
 
 
-#include <ngx_config.h>
-#include <ngx_core.h>
-#include <ngx_event.h>
 #include <ngx_event_connect.h>
 
 
 #if (NGX_HAVE_TRANSPARENT_PROXY)
-static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc,
-    ngx_socket_t s);
+static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s);
 #endif
 
 
-ngx_int_t
-ngx_event_connect_peer(ngx_peer_connection_t *pc)
-{
-    int                rc, type, value;
+ngx_int_t ngx_event_connect_peer(ngx_peer_connection_t *pc) {
+    int rc, type, value;
 #if (NGX_HAVE_IP_BIND_ADDRESS_NO_PORT || NGX_LINUX)
-    in_port_t          port;
+    in_port_t port;
 #endif
-    ngx_int_t          event;
-    ngx_err_t          err;
-    ngx_uint_t         level;
-    ngx_socket_t       s;
-    ngx_event_t       *rev, *wev;
-    ngx_connection_t  *c;
+    ngx_int_t event;
+    ngx_err_t err;
+    ngx_uint_t level;
+    ngx_socket_t s;
+    ngx_event_t *rev, *wev;
+    ngx_connection_t *c;
 
     rc = pc->get(pc, pc->data);
     if (rc != NGX_OK) {
@@ -40,12 +34,10 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 
     s = ngx_socket(pc->sockaddr->sa_family, type, 0);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, pc->log, 0, "%s socket %d",
-                   (type == SOCK_STREAM) ? "stream" : "dgram", s);
+    ngx_log_debug2(NGX_LOG_DEBUG_EVENT, pc->log, 0, "%s socket %d", (type == SOCK_STREAM) ? "stream" : "dgram", s);
 
-    if (s == (ngx_socket_t) -1) {
-        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                      ngx_socket_n " failed");
+    if (s == (ngx_socket_t)-1) {
+        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, ngx_socket_n " failed");
         return NGX_ERROR;
     }
 
@@ -54,8 +46,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 
     if (c == NULL) {
         if (ngx_close_socket(s) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          ngx_close_socket_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, ngx_close_socket_n " failed");
         }
 
         return NGX_ERROR;
@@ -64,11 +55,8 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     c->type = type;
 
     if (pc->rcvbuf) {
-        if (setsockopt(s, SOL_SOCKET, SO_RCVBUF,
-                       (const void *) &pc->rcvbuf, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(SO_RCVBUF) failed");
+        if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, (const void *)&pc->rcvbuf, sizeof(int)) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_RCVBUF) failed");
             goto failed;
         }
     }
@@ -76,24 +64,18 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     if (pc->so_keepalive) {
         value = 1;
 
-        if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE,
-                       (const void *) &value, sizeof(int))
-            == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(SO_KEEPALIVE) failed, ignored");
+        if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (const void *)&value, sizeof(int)) == -1) {
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_KEEPALIVE) failed, ignored");
         }
     }
 
     if (ngx_nonblocking(s) == -1) {
-        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                      ngx_nonblocking_n " failed");
+        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, ngx_nonblocking_n " failed");
 
         goto failed;
     }
 
     if (pc->local) {
-
 #if (NGX_HAVE_TRANSPARENT_PROXY)
         if (pc->transparent) {
             if (ngx_event_connect_set_transparent(pc, s) != NGX_OK) {
@@ -109,13 +91,11 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 #if (NGX_HAVE_IP_BIND_ADDRESS_NO_PORT)
 
         if (pc->sockaddr->sa_family != AF_UNIX && port == 0) {
-            static int  bind_address_no_port = 1;
+            static int bind_address_no_port = 1;
 
             if (bind_address_no_port) {
-                if (setsockopt(s, IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT,
-                               (const void *) &bind_address_no_port,
-                               sizeof(int)) == -1)
-                {
+                if (setsockopt(s, IPPROTO_IP, IP_BIND_ADDRESS_NO_PORT, (const void *)&bind_address_no_port,
+                               sizeof(int)) == -1) {
                     err = ngx_socket_errno;
 
                     if (err != NGX_EOPNOTSUPP && err != NGX_ENOPROTOOPT) {
@@ -135,14 +115,10 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 #if (NGX_LINUX)
 
         if (pc->type == SOCK_DGRAM && port != 0) {
-            int  reuse_addr = 1;
+            int reuse_addr = 1;
 
-            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
-                           (const void *) &reuse_addr, sizeof(int))
-                 == -1)
-            {
-                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                              "setsockopt(SO_REUSEADDR) failed");
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (const void *)&reuse_addr, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_REUSEADDR) failed");
                 goto failed;
             }
         }
@@ -150,18 +126,17 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 #endif
 
         if (bind(s, pc->local->sockaddr, pc->local->socklen) == -1) {
-            ngx_log_error(NGX_LOG_CRIT, pc->log, ngx_socket_errno,
-                          "bind(%V) failed", &pc->local->name);
+            ngx_log_error(NGX_LOG_CRIT, pc->log, ngx_socket_errno, "bind(%V) failed", &pc->local->name);
 
             goto failed;
         }
     }
 
     if (type == SOCK_STREAM) {
-        c->recv = ngx_recv;
-        c->send = ngx_send;
-        c->recv_chain = ngx_recv_chain;
-        c->send_chain = ngx_send_chain;
+        c->recv = ngx_io.recv;
+        c->send = ngx_io.send;
+        c->recv_chain = ngx_io.recv_chain;
+        c->send_chain = ngx_io.send_chain;
 
         c->sendfile = 1;
 
@@ -176,9 +151,9 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         }
 
     } else { /* type == SOCK_DGRAM */
-        c->recv = ngx_udp_recv;
-        c->send = ngx_send;
-        c->send_chain = ngx_udp_send_chain;
+        c->recv = ngx_io.udp_recv;
+        c->send = ngx_io.send;
+        c->send_chain = ngx_io.udp_send_chain;
 
         c->need_flush_buf = 1;
     }
@@ -197,14 +172,13 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 
     c->start_time = ngx_current_msec;
 
-    if (ngx_add_conn) {
-        if (ngx_add_conn(c) == NGX_ERROR) {
+    if (ngx_event_actions.add_conn) {
+        if (ngx_event_actions.add_conn(c) == NGX_ERROR) {
             goto failed;
         }
     }
 
-    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, pc->log, 0,
-                   "connect to %V, fd:%d #%uA", pc->name, s, c->number);
+    ngx_log_debug3(NGX_LOG_DEBUG_EVENT, pc->log, 0, "connect to %V, fd:%d #%uA", pc->name, s, c->number);
 
     rc = connect(s, pc->sockaddr, pc->socklen);
 
@@ -217,8 +191,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
             /* Winsock returns WSAEWOULDBLOCK (NGX_EAGAIN) */
             && err != NGX_EAGAIN
 #endif
-            )
-        {
+        ) {
             if (err == NGX_ECONNREFUSED
 #if (NGX_LINUX)
                 /*
@@ -227,20 +200,15 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
                  */
                 || err == NGX_EAGAIN
 #endif
-                || err == NGX_ECONNRESET
-                || err == NGX_ENETDOWN
-                || err == NGX_ENETUNREACH
-                || err == NGX_EHOSTDOWN
-                || err == NGX_EHOSTUNREACH)
-            {
+                || err == NGX_ECONNRESET || err == NGX_ENETDOWN || err == NGX_ENETUNREACH || err == NGX_EHOSTDOWN ||
+                err == NGX_EHOSTUNREACH) {
                 level = NGX_LOG_ERR;
 
             } else {
                 level = NGX_LOG_CRIT;
             }
 
-            ngx_log_error(level, c->log, err, "connect() to %V failed",
-                          pc->name);
+            ngx_log_error(level, c->log, err, "connect() to %V failed", pc->name);
 
             ngx_close_connection(c);
             pc->connection = NULL;
@@ -249,9 +217,8 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         }
     }
 
-    if (ngx_add_conn) {
+    if (ngx_event_actions.add_conn) {
         if (rc == -1) {
-
             /* NGX_EINPROGRESS */
 
             return NGX_AGAIN;
@@ -265,13 +232,10 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     }
 
     if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
-
-        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, pc->log, ngx_socket_errno,
-                       "connect(): %d", rc);
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, pc->log, ngx_socket_errno, "connect(): %d", rc);
 
         if (ngx_blocking(s) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          ngx_blocking_n " failed");
+            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, ngx_blocking_n " failed");
             goto failed;
         }
 
@@ -289,27 +253,24 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     }
 
     if (ngx_event_flags & NGX_USE_CLEAR_EVENT) {
-
         /* kqueue */
 
         event = NGX_CLEAR_EVENT;
 
     } else {
-
         /* select, poll, /dev/poll */
 
         event = NGX_LEVEL_EVENT;
     }
 
-    if (ngx_add_event(rev, NGX_READ_EVENT, event) != NGX_OK) {
+    if (ngx_event_actions.add(rev, NGX_READ_EVENT, event) != NGX_OK) {
         goto failed;
     }
 
     if (rc == -1) {
-
         /* NGX_EINPROGRESS */
 
-        if (ngx_add_event(wev, NGX_WRITE_EVENT, event) != NGX_OK) {
+        if (ngx_event_actions.add(wev, NGX_WRITE_EVENT, event) != NGX_OK) {
             goto failed;
         }
 
@@ -333,91 +294,72 @@ failed:
 
 #if (NGX_HAVE_TRANSPARENT_PROXY)
 
-static ngx_int_t
-ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s)
-{
-    int  value;
+static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s) {
+    int value;
 
     value = 1;
 
 #if defined(SO_BINDANY)
 
-    if (setsockopt(s, SOL_SOCKET, SO_BINDANY,
-                   (const void *) &value, sizeof(int)) == -1)
-    {
-        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                      "setsockopt(SO_BINDANY) failed");
+    if (setsockopt(s, SOL_SOCKET, SO_BINDANY, (const void *)&value, sizeof(int)) == -1) {
+        ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(SO_BINDANY) failed");
         return NGX_ERROR;
     }
 
 #else
 
     switch (pc->local->sockaddr->sa_family) {
-
-    case AF_INET:
+        case AF_INET:
 
 #if defined(IP_TRANSPARENT)
 
-        if (setsockopt(s, IPPROTO_IP, IP_TRANSPARENT,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IP_TRANSPARENT) failed");
-            return NGX_ERROR;
-        }
+            if (setsockopt(s, IPPROTO_IP, IP_TRANSPARENT, (const void *)&value, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IP_TRANSPARENT) failed");
+                return NGX_ERROR;
+            }
 
 #elif defined(IP_BINDANY)
 
-        if (setsockopt(s, IPPROTO_IP, IP_BINDANY,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IP_BINDANY) failed");
-            return NGX_ERROR;
-        }
+            if (setsockopt(s, IPPROTO_IP, IP_BINDANY, (const void *)&value, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IP_BINDANY) failed");
+                return NGX_ERROR;
+            }
 
 #endif
 
-        break;
+            break;
 
 #if (NGX_HAVE_INET6)
 
-    case AF_INET6:
+        case AF_INET6:
 
 #if defined(IPV6_TRANSPARENT)
 
-        if (setsockopt(s, IPPROTO_IPV6, IPV6_TRANSPARENT,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IPV6_TRANSPARENT) failed");
-            return NGX_ERROR;
-        }
+            if (setsockopt(s, IPPROTO_IPV6, IPV6_TRANSPARENT, (const void *)&value, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IPV6_TRANSPARENT) failed");
+                return NGX_ERROR;
+            }
 
 #elif defined(IPV6_BINDANY)
 
-        if (setsockopt(s, IPPROTO_IPV6, IPV6_BINDANY,
-                       (const void *) &value, sizeof(int)) == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno,
-                          "setsockopt(IPV6_BINDANY) failed");
-            return NGX_ERROR;
-        }
+            if (setsockopt(s, IPPROTO_IPV6, IPV6_BINDANY, (const void *)&value, sizeof(int)) == -1) {
+                ngx_log_error(NGX_LOG_ALERT, pc->log, ngx_socket_errno, "setsockopt(IPV6_BINDANY) failed");
+                return NGX_ERROR;
+            }
 
 #else
 
-        ngx_log_error(NGX_LOG_ALERT, pc->log, 0,
-                      "could not enable transparent proxying for IPv6 "
-                      "on this platform");
+            ngx_log_error(NGX_LOG_ALERT, pc->log, 0,
+                          "could not enable transparent proxying for IPv6 "
+                          "on this platform");
 
-        return NGX_ERROR;
+            return NGX_ERROR;
 
 #endif
 
-        break;
+            break;
 
 #endif /* NGX_HAVE_INET6 */
-
     }
 
 #endif /* SO_BINDANY */
@@ -428,8 +370,6 @@ ngx_event_connect_set_transparent(ngx_peer_connection_t *pc, ngx_socket_t s)
 #endif
 
 
-ngx_int_t
-ngx_event_get_peer(ngx_peer_connection_t *pc, void *data)
-{
+ngx_int_t ngx_event_get_peer(ngx_peer_connection_t *pc, void *data) {
     return NGX_OK;
 }

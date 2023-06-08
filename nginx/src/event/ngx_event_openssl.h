@@ -10,7 +10,9 @@
 
 
 #include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_cycle.h>
+#include <ngx_resolver.h>
 
 #define OPENSSL_SUPPRESS_DEPRECATED
 

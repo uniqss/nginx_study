@@ -5,24 +5,25 @@
  */
 
 
-#include <ngx_config.h>
-#include <ngx_core.h>
+#include <ngx_core_def.h>
+#include <ngx_user.h>
+#include <ngx_string.h>
+#include <ngx_log.h>
+#include <ngx_palloc.h>
 
 
 #if (NGX_CRYPT)
 
 #if (NGX_HAVE_GNU_CRYPT_R)
 
-ngx_int_t
-ngx_libc_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted)
-{
-    char               *value;
-    size_t              len;
-    struct crypt_data   cd;
+ngx_int_t ngx_libc_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted) {
+    char *value;
+    size_t len;
+    struct crypt_data cd;
 
     cd.initialized = 0;
 
-    value = crypt_r((char *) key, (char *) salt, &cd);
+    value = crypt_r((char *)key, (char *)salt, &cd);
 
     if (value) {
         len = ngx_strlen(value) + 1;
@@ -43,14 +44,12 @@ ngx_libc_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted)
 
 #else
 
-ngx_int_t
-ngx_libc_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted)
-{
-    char       *value;
-    size_t      len;
-    ngx_err_t   err;
+ngx_int_t ngx_libc_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted) {
+    char *value;
+    size_t len;
+    ngx_err_t err;
 
-    value = crypt((char *) key, (char *) salt);
+    value = crypt((char *)key, (char *)salt);
 
     if (value) {
         len = ngx_strlen(value) + 1;
